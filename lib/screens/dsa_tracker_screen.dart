@@ -226,7 +226,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: problem.isSolved 
-              ? const Color(0xFF4CAF50).withOpacity(0.3)
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
               : Colors.grey[600]!,
         ),
       ),
@@ -239,7 +239,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: difficultyColor.withOpacity(0.2),
+                  color: difficultyColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: difficultyColor),
                 ),
@@ -260,7 +260,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.2),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
@@ -476,7 +476,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
               
               // Difficulty Dropdown
               DropdownButtonFormField<String>(
-                value: selectedDifficulty,
+                initialValue: selectedDifficulty,
                 decoration: InputDecoration(
                   labelText: 'Difficulty',
                   labelStyle: TextStyle(color: Colors.grey[400]),
@@ -529,11 +529,13 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                       createdAt: DateTime.now(),
                     );
 
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
                     try {
                       await _firestoreService.addDSAProblem(problem);
                       if (mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        navigator.pop();
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('Problem added successfully!'),
                             backgroundColor: Color(0xFF4CAF50),
@@ -542,7 +544,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text('Failed to add problem: $e'),
                             backgroundColor: Colors.red,
@@ -575,6 +577,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
   }
 
   Future<void> _toggleSolved(DSAProblem problem) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final updatedProblem = problem.copyWith(isSolved: !problem.isSolved);
       await _firestoreService.updateDSAProblem(updatedProblem);
@@ -586,7 +589,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               problem.isSolved ? 'Marked as unsolved' : 'Marked as solved! 🎉',
@@ -597,7 +600,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Failed to update problem: $e'),
             backgroundColor: Colors.red,
@@ -630,11 +633,12 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               try {
                 await _firestoreService.deleteDSAProblem(problem.id);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Problem deleted'),
                       backgroundColor: Color(0xFF4CAF50),
@@ -643,7 +647,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Failed to delete problem: $e'),
                       backgroundColor: Colors.red,

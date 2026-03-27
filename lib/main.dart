@@ -31,8 +31,8 @@ class LagjaApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0F0F1A),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF6C63FF),
-          background: Color(0xFF0F0F1A),
-          surface: Color(0xFF1A1A2E),
+          surface: Color(0xFF0F0F1A),
+          surfaceContainerHighest: Color(0xFF1A1A2E), // Replaced deprecated surfaceVariant
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF0F0F1A),

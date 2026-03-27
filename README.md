@@ -8,6 +8,7 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
 - **💻 DSA Tracker**: Add, filter, and track Data Structures & Algorithms problems
 - **🏢 Companies**: Manage job applications with status workflow
 - **📝 Interview Notes**: Document interview experiences and company-specific notes
+- **✨ AI Roadmap**: Generate personalized learning paths using Gemini 2.0 Flash
 - **🔥 Activity Tracking**: Maintain streaks and visualize your preparation journey
 
 ## 🛠 Tech Stack
@@ -16,10 +17,13 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
 - **Firebase**:
   - Authentication (Google Sign-In only)
   - Cloud Firestore
+- **AI Integration**:
+  - Google Gemini 2.0 Flash API (via `http`)
 - **Packages**:
   - `flutter_heatmap_calendar` - Activity visualization
   - `intl` - Date formatting
   - `uuid` - Unique ID generation
+  - `http` - API communication
 
 ## 🎨 Design
 
@@ -36,7 +40,8 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
 2. **Dashboard**: Overview with stats and heatmap
 3. **DSA Tracker**: Problem management with filters
 4. **Companies**: Application tracking with status workflow
-5. **Notes**: Interview notes with search functionality
+5. **AI Roadmap**: Generator for learning paths (Generates problems for DSA Tracker)
+6. **Notes**: Interview notes with search functionality
 
 ## 🚀 Getting Started
 
@@ -45,6 +50,7 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
 - Flutter SDK (>=3.10.0)
 - Dart SDK (>=3.0.0)
 - Firebase project setup
+- Google Gemini API Key (Add to `lib/constants/api_constants.dart`)
 
 ### Setup Instructions
 
@@ -78,11 +84,9 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
       - Download `google-services.json`
       - Place it in `android/app/google-services.json`
    
-   e. Add iOS app (if needed):
-      - Go to Project settings → Add app → iOS
-      - Bundle ID: `com.example.lagja`
-      - Download `GoogleService-Info.plist`
-      - Place it in `ios/Runner/GoogleService-Info.plist`
+   e. Add Web app:
+      - Go to Project settings → Add app → Web
+      - Follow the instructions to add to `web/index.html`
 
 4. **Update Firebase Configuration**
    
@@ -94,7 +98,11 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
    
    This will update `lib/firebase_options.dart` with your actual Firebase configuration.
 
-5. **Android Configuration (Kotlin DSL)**
+5. **AI Roadmap Setup**
+   - Head to [Google AI Studio](https://aistudio.google.com/) to get your API Key.
+   - Add it to `lib/constants/api_constants.dart`.
+
+6. **Android Configuration (Kotlin DSL)**
    
    The project uses modern Gradle Kotlin DSL (`.kts`). 
    
@@ -112,11 +120,10 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
      plugins {
          id("com.android.application")
          id("com.google.gms.google-services")
-         // ...
      }
      ```
 
-6. **Run the app**
+7. **Run the app**
    ```bash
    flutter run
    ```
@@ -127,10 +134,13 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
 lib/
 ├── main.dart                    # App entry point
 ├── firebase_options.dart        # Firebase configuration
+├── constants/
+│   └── api_constants.dart       # API credentials (API_KEY)
 ├── models/                      # Data models
 │   ├── dsa_problem.dart
 │   ├── company.dart
-│   └── note.dart
+│   ├── note.dart
+│   └── roadmap_problem.dart
 ├── services/                    # Business logic
 │   ├── auth_service.dart
 │   └── firestore_service.dart
@@ -139,7 +149,8 @@ lib/
 │   ├── dashboard_screen.dart
 │   ├── dsa_tracker_screen.dart
 │   ├── companies_screen.dart
-│   └── notes_screen.dart
+│   ├── notes_screen.dart
+│   └── roadmap_screen.dart
 └── widgets/                     # Reusable widgets
     └── main_screen.dart
 ```
@@ -211,9 +222,6 @@ users/{uid}/
 ```bash
 # Run tests
 flutter test
-
-# Run with coverage
-flutter test --coverage
 ```
 
 ## 📦 Build
@@ -225,8 +233,8 @@ flutter build apk --release
 # Build App Bundle
 flutter build appbundle --release
 
-# Build iOS
-flutter build ios --release
+# Build Web
+flutter build web --release
 ```
 
 ## 🤝 Contributing
@@ -248,10 +256,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 2. Upload to Google Play Console
 3. Follow the standard release process
 
-### iOS
-1. Build the iOS release
-2. Upload to App Store Connect
-3. Follow the standard App Store review process
+### Web
+1. Build the web release
+2. Deploy to Firebase Hosting, Vercel, or Netlify
+3. Follow the standard web deployment process
 
 ## 🐛 Troubleshooting
 
@@ -272,17 +280,15 @@ This project is licensed under the MIT License - see the LICENSE file for detail
    - Ensure you add your **SHA-1** fingerprint to the Firebase Console.
    - Run `cd android && ./gradlew signingReport` to find your current fingerprints.
 
-3. **Build Issues**
+4. **Build Issues**
    - Run `flutter clean` and `flutter pub get`
    - Ensure all dependencies are compatible
-   - Check for platform-specific requirements
 
 ## 📞 Support
 
 For issues and questions:
 - Create an issue on GitHub
-- Check existing issues for solutions
-- Refer to Flutter and Firebase documentation
+- Check the official Documentation
 
 ---
 

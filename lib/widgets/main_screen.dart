@@ -3,6 +3,7 @@ import '../screens/dashboard_screen.dart';
 import '../screens/dsa_tracker_screen.dart';
 import '../screens/companies_screen.dart';
 import '../screens/notes_screen.dart';
+import '../screens/roadmap_screen.dart';
 import '../services/auth_service.dart';
 
 class MainScreen extends StatefulWidget {
@@ -16,11 +17,15 @@ class _MainScreenState extends State<MainScreen> {
   final AuthService _authService = AuthService();
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
+  List<Widget> get _screens => [
     const DashboardScreen(),
     const DSATrackerScreen(),
     const CompaniesScreen(),
     const NotesScreen(),
+    // 5th tab — AI Roadmap Generator
+    RoadmapScreen(
+      onSaved: () => setState(() => _currentIndex = 1), // jump to DSA tab
+    ),
   ];
 
   @override
@@ -76,7 +81,7 @@ class _MainScreenState extends State<MainScreen> {
           color: const Color(0xFF1A1A2E),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -116,6 +121,12 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(Icons.note_alt_outlined),
               activeIcon: Icon(Icons.note_alt),
               label: 'Notes',
+            ),
+            // 5th tab: AI Roadmap Generator
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map_outlined),
+              activeIcon: Icon(Icons.map),
+              label: 'Roadmap',
             ),
           ],
         ),

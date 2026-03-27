@@ -30,6 +30,12 @@ class FirestoreService {
     await _dsaProblemsCollection.doc(problem.id).set(problem.toFirestore());
   }
 
+  /// Saves a pre-built Firestore map directly. Used by the Roadmap Generator
+  /// to insert AI-generated problems without coupling to [DSAProblem].
+  Future<void> addDSAProblemRaw(String id, Map<String, dynamic> data) async {
+    await _dsaProblemsCollection.doc(id).set(data);
+  }
+
   Future<void> updateDSAProblem(DSAProblem problem) async {
     await _dsaProblemsCollection.doc(problem.id).update(problem.toFirestore());
   }
@@ -81,7 +87,7 @@ class FirestoreService {
     
     return _notesCollection
         .where('companyName', isGreaterThanOrEqualTo: query)
-        .where('companyName', isLessThanOrEqualTo: query + '\uf8ff')
+        .where('companyName', isLessThanOrEqualTo: '$query\uf8ff')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs

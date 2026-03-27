@@ -52,9 +52,13 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildGreeting(BuildContext context, AuthService authService) {
     final hour = DateTime.now().hour;
     String greeting = 'Good ';
-    if (hour < 12) greeting += 'Morning';
-    else if (hour < 17) greeting += 'Afternoon';
-    else greeting += 'Evening';
+    if (hour < 12) {
+      greeting += 'Morning';
+    } else if (hour < 17) {
+      greeting += 'Afternoon';
+    } else {
+      greeting += 'Evening';
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -62,7 +66,7 @@ class DashboardScreen extends StatelessWidget {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF6C63FF).withOpacity(0.2),
+          color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -138,7 +142,7 @@ class DashboardScreen extends StatelessWidget {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -149,7 +153,7 @@ class DashboardScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -203,7 +207,7 @@ class DashboardScreen extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 const Color(0xFF6C63FF),
-                const Color(0xFF6C63FF).withOpacity(0.8),
+                const Color(0xFF6C63FF).withValues(alpha: 0.8),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -211,7 +215,7 @@ class DashboardScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6C63FF).withOpacity(0.3),
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -222,7 +226,7 @@ class DashboardScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -270,7 +274,7 @@ class DashboardScreen extends StatelessWidget {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF6C63FF).withOpacity(0.2),
+          color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -309,10 +313,10 @@ class DashboardScreen extends StatelessWidget {
                 showColorTip: false,
                 size: 20,
                 colorsets: {
-                  1: const Color(0xFF6C63FF).withOpacity(0.2),
-                  2: const Color(0xFF6C63FF).withOpacity(0.4),
-                  3: const Color(0xFF6C63FF).withOpacity(0.6),
-                  4: const Color(0xFF6C63FF).withOpacity(0.8),
+                  1: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                  2: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                  3: const Color(0xFF6C63FF).withValues(alpha: 0.6),
+                  4: const Color(0xFF6C63FF).withValues(alpha: 0.8),
                   5: const Color(0xFF6C63FF),
                 },
                 onClick: (value) {
@@ -353,7 +357,7 @@ class DashboardScreen extends StatelessWidget {
                 Icons.add_circle_outline,
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => DSATrackerScreen()),
+                  MaterialPageRoute(builder: (context) => const DSATrackerScreen()),
                 ),
                 const Color(0xFF6C63FF),
               ),
@@ -366,7 +370,7 @@ class DashboardScreen extends StatelessWidget {
                 Icons.business_center,
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => CompaniesScreen()),
+                  MaterialPageRoute(builder: (context) => const CompaniesScreen()),
                 ),
                 const Color(0xFF4CAF50),
               ),
@@ -389,10 +393,10 @@ class DashboardScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
           ),
         ),
         child: Column(

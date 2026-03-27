@@ -137,7 +137,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: statusColor.withOpacity(0.3),
+          color: statusColor.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -164,7 +164,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
+                    color: statusColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: statusColor),
                   ),
@@ -211,7 +211,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[800]?.withOpacity(0.3),
+                color: Colors.grey[800]?.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -393,7 +393,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
               
               // Status Dropdown
               DropdownButtonFormField<ApplicationStatus>(
-                value: selectedStatus,
+                initialValue: selectedStatus,
                 decoration: InputDecoration(
                   labelText: 'Status',
                   labelStyle: TextStyle(color: Colors.grey[400]),
@@ -473,11 +473,13 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                       createdAt: DateTime.now(),
                     );
 
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
                     try {
                       await _firestoreService.addCompany(company);
                       if (mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        navigator.pop();
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('Company added successfully!'),
                             backgroundColor: Color(0xFF4CAF50),
@@ -486,7 +488,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text('Failed to add company: $e'),
                             backgroundColor: Colors.red,
@@ -549,35 +551,38 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
               trailing: isSelected 
                   ? const Icon(Icons.check, color: Color(0xFF4CAF50))
                   : null,
-              onTap: () async {
-                if (status != company.status) {
-                  try {
-                    final updatedCompany = company.copyWith(status: status);
-                    await _firestoreService.updateCompany(updatedCompany);
-                    if (mounted) {
+                  onTap: () async {
+                    if (status != company.status) {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      try {
+                        final updatedCompany = company.copyWith(status: status);
+                        await _firestoreService.updateCompany(updatedCompany);
+                        if (mounted) {
+                          navigator.pop();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Status updated to ${status.name}'),
+                              backgroundColor: color,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          navigator.pop();
+                          // Note: messenger was captured before try
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to update status: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    } else {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Status updated to ${status.name}'),
-                          backgroundColor: color,
-                        ),
-                      );
                     }
-                  } catch (e) {
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to update status: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                } else {
-                  Navigator.pop(context);
-                }
-              },
+                  },
             );
           }).toList(),
         ),
@@ -623,11 +628,12 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               try {
                 await _firestoreService.deleteCompany(company.id);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Company deleted'),
                       backgroundColor: Color(0xFF4CAF50),
@@ -636,7 +642,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Failed to delete company: $e'),
                       backgroundColor: Colors.red,

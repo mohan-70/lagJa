@@ -191,7 +191,7 @@ class _NotesScreenState extends State<NotesScreen> {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF6C63FF).withOpacity(0.2),
+          color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -207,7 +207,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6C63FF).withOpacity(0.1),
+                        color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
@@ -247,7 +247,7 @@ class _NotesScreenState extends State<NotesScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[800]?.withOpacity(0.3),
+              color: Colors.grey[800]?.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -324,7 +324,7 @@ class _NotesScreenState extends State<NotesScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withOpacity(0.1),
+                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -377,7 +377,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[800]?.withOpacity(0.3),
+                      color: Colors.grey[800]?.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -499,11 +499,13 @@ Widget _buildAddNoteBottomSheet() {
                     createdAt: DateTime.now(),
                   );
 
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
                   try {
                     await _firestoreService.addNote(note);
                     if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      navigator.pop();
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Note added successfully!'),
                           backgroundColor: Color(0xFF4CAF50),
@@ -512,7 +514,7 @@ Widget _buildAddNoteBottomSheet() {
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text('Failed to add note: $e'),
                           backgroundColor: Colors.red,
@@ -567,11 +569,12 @@ void _showDeleteConfirmation(Note note) {
         ),
         TextButton(
           onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
             Navigator.pop(context);
             try {
               await _firestoreService.deleteNote(note.id);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Note deleted'),
                     backgroundColor: Color(0xFF4CAF50),
@@ -580,7 +583,7 @@ void _showDeleteConfirmation(Note note) {
               }
             } catch (e) {
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text('Failed to delete note: $e'),
                     backgroundColor: Colors.red,
