@@ -94,23 +94,27 @@ A production-ready Flutter app for BCA/BTech students in India to track their pl
    
    This will update `lib/firebase_options.dart` with your actual Firebase configuration.
 
-5. **Android Configuration**
+5. **Android Configuration (Kotlin DSL)**
    
-   Add the following to `android/build.gradle`:
-   ```gradle
-   buildscript {
-     dependencies {
-       // Add this line
-       classpath 'com.google.gms:google-services:4.3.15'
+   The project uses modern Gradle Kotlin DSL (`.kts`). 
+   
+   - **Root `build.gradle.kts`**: Already configured with necessary classpaths and Java warning suppression:
+     ```kotlin
+     subprojects {
+         tasks.withType<JavaCompile>().configureEach {
+             options.compilerArgs.add("-Xlint:-options") // Suppresses obsolete Java 8 warnings
+         }
      }
-   }
-   ```
+     ```
    
-   Add to `android/app/build.gradle`:
-   ```gradle
-   // Apply the plugin at the bottom
-   apply plugin: 'com.google.gms.google-services'
-   ```
+   - **App `build.gradle.kts`**: The Google Services plugin is applied via the `plugins` block:
+     ```kotlin
+     plugins {
+         id("com.android.application")
+         id("com.google.gms.google-services")
+         // ...
+     }
+     ```
 
 6. **Run the app**
    ```bash
@@ -253,15 +257,20 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### Common Issues
 
-1. **Firebase Configuration Error**
-   - Ensure `firebase_options.dart` is properly configured
-   - Verify `google-services.json` is in the correct location
-   - Check Firebase project settings
+1. **Duplicate Firebase App Error**
+   - If you see `[core/duplicate-app]`, ensure `main.dart` uses the safe initialization check:
+     ```dart
+     if (Firebase.apps.isEmpty) {
+       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+     }
+     ```
 
-2. **Google Sign-In Issues**
-   - Ensure SHA-1 fingerprint is added to Firebase
-   - Verify Google Sign-In is enabled in Firebase Console
-   - Check OAuth consent screen configuration
+2. **Java Compiler Warnings (Obsolete Java 8)**
+   - These are handled in the root `build.gradle.kts` using `-Xlint:-options`. The build is fully compatible with Java 17+ while supporting older plugin dependencies.
+
+3. **Google Sign-In Issues**
+   - Ensure you add your **SHA-1** fingerprint to the Firebase Console.
+   - Run `cd android && ./gradlew signingReport` to find your current fingerprints.
 
 3. **Build Issues**
    - Run `flutter clean` and `flutter pub get`
