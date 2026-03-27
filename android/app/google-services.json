@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "300248462787",
+    "project_id": "lagja-a1087",
+    "storage_bucket": "lagja-a1087.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:300248462787:android:cb21efb587b32f93847976",
+        "android_client_info": {
+          "package_name": "com.trumos.lagja"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "300248462787-r42vvcgapl60knqq668ghbrt0vulc6ni.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcmcOpZc_ChAek7wD2KnyG8Hq0fRCehwo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "300248462787-r42vvcgapl60knqq668ghbrt0vulc6ni.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
