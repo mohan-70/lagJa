@@ -189,6 +189,12 @@ users/{uid}/
 
 ## 🎯 Features in Detail
 
+### 🤖 AI Roadmap Generator
+- **Targeted Paths**: Generate roadmap specifically for a company (e.g., Google, Amazon) and role (e.g., SDE, Frontend).
+- **Customization**: Choose learning duration (e.g., 4 weeks) and current skill level (Beginner/Intermediate/Advanced).
+- **Direct Integration**: Generated roadmaps can be saved directly into the **DSA Tracker** with a single click.
+- **Smart Formatting**: Uses Gemini 2.0 Flash to provide ordered problems with "Why it's important" context for each.
+
 ### DSA Tracker
 - Add problems with topic, title, and difficulty
 - Filter by difficulty and solved status

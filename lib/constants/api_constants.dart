@@ -7,7 +7,7 @@
 class ApiConstants {
   /// Gemini 2.0 Flash API Key
   /// Replace with your actual key from https://aistudio.google.com/app/apikey
-  static const String geminiApiKey = 'AIzaSyDs-4QUfBsJiT8O5Kg1LZgj6_wSvWtlWFY';
+  static const String geminiApiKey = 'AIzaSyA1swLif25b017va3yJIk3Y4UjytpCS8RE';
 
   /// Full Gemini API endpoint with the key appended
   static const String geminiApiUrl =

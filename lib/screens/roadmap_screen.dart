@@ -110,7 +110,17 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('API returned status ${response.statusCode}');
+        // Log the error body locally for debugging
+        final errorBody = response.body;
+        // Optionally parse for error message
+        String msg = 'API Error: ${response.statusCode}';
+        try {
+          final errorData = jsonDecode(errorBody);
+          if (errorData['error'] != null && errorData['error']['message'] != null) {
+            msg = 'API Error: ${errorData['error']['message']}';
+          }
+        } catch (_) {}
+        throw Exception(msg);
       }
 
       // ── Parse Gemini response ───────────────────────────────────────────
@@ -128,18 +138,24 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       final problems =
           jsonList.map((e) => RoadmapProblem.fromMap(e as Map<String, dynamic>)).toList();
 
-      setState(() {
-        _problems = problems;
-        _state = _ScreenState.result;
-      });
+      if (mounted) {
+        setState(() {
+          _problems = problems;
+          _state = _ScreenState.result;
+        });
+      }
     } catch (e) {
-      // ── Error handling: never crash ──────────────────────────────────────
-      setState(() => _state = _ScreenState.form);
-      if (e.toString().contains('jsonDecode') ||
-          e.toString().contains('FormatException')) {
-        _showSnackBar('Something went wrong. Please try again.');
-      } else {
-        _showSnackBar('Failed to generate roadmap. Check your internet connection.');
+      // ── Error handling ──────────────────────────────────────
+      if (mounted) {
+        setState(() => _state = _ScreenState.form);
+        
+        final errorStr = e.toString().replaceFirst('Exception: ', '');
+        if (errorStr.contains('jsonDecode') || errorStr.contains('FormatException')) {
+          _showSnackBar('Format error. Please try again.');
+        } else {
+          // Show the actual error message like API Error: [details from Gemini]
+          _showSnackBar(errorStr);
+        }
       }
     }
   }
