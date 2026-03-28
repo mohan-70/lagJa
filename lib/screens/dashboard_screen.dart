@@ -5,6 +5,9 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'dsa_tracker_screen.dart';
 import 'companies_screen.dart';
+import 'leaderboard_screen.dart';
+import 'company_intel_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -14,33 +17,68 @@ class DashboardScreen extends StatelessWidget {
     final AuthService authService = AuthService();
     final FirestoreService firestoreService = FirestoreService();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF000000),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF000000),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF000000),
+          title: const Text('Lagja 🚀', style: TextStyle(fontWeight: FontWeight.bold)),
+          centerTitle: false,
+          elevation: 0,
+          bottom: const TabBar(
+            indicatorColor: Color(0xFF6C63FF),
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicatorWeight: 2,
+            labelColor: Colors.white,
+            unselectedLabelColor: Color(0xFF8E8E93),
+            labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            isScrollable: false,
+            tabs: [
+              Tab(text: "Overview"),
+              Tab(text: "Leaderboard"),
+              Tab(text: "Company Intel"),
+              Tab(text: "Settings"),
+            ],
+          ),
+        ),
+        body: TabBarView(
           children: [
-            _buildGreeting(authService),
-            const SizedBox(height: 32),
-            _buildSectionHeader('YOUR OVERVIEW'),
-            const SizedBox(height: 12),
-            _buildStatsCards(firestoreService),
-            const SizedBox(height: 24),
-            _buildSectionHeader('STREAK'),
-            const SizedBox(height: 12),
-            _buildStreakCard(firestoreService),
-            const SizedBox(height: 24),
-            _buildSectionHeader('ACTIVITY'),
-            const SizedBox(height: 12),
-            _buildActivityHeatmap(firestoreService),
-            const SizedBox(height: 24),
-            _buildSectionHeader('QUICK ACTIONS'),
-            const SizedBox(height: 12),
-            _buildQuickActions(context),
-            const SizedBox(height: 48),
+            _buildOverviewTab(authService, firestoreService, context),
+            const LeaderboardScreen(showAppBar: false),
+            const CompanyIntelScreen(),
+            const SettingsScreen(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(AuthService authService, FirestoreService firestoreService, BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildGreeting(authService),
+          const SizedBox(height: 32),
+          _buildSectionHeader('YOUR OVERVIEW'),
+          const SizedBox(height: 12),
+          _buildStatsCards(firestoreService),
+          const SizedBox(height: 24),
+          _buildSectionHeader('STREAK'),
+          const SizedBox(height: 12),
+          _buildStreakCard(firestoreService),
+          const SizedBox(height: 24),
+          _buildSectionHeader('ACTIVITY'),
+          const SizedBox(height: 12),
+          _buildActivityHeatmap(firestoreService),
+          const SizedBox(height: 24),
+          _buildSectionHeader('QUICK ACTIONS'),
+          const SizedBox(height: 12),
+          _buildQuickActions(context),
+          const SizedBox(height: 48),
+        ],
       ),
     );
   }

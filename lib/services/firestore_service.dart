@@ -149,4 +149,47 @@ class FirestoreService {
       };
     }).asyncMap((future) => future);
   }
+  // Data Clearing Methods
+  Future<void> clearDSAProblems() async {
+    final snapshot = await _dsaProblemsCollection.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  Future<void> clearCompanies() async {
+    final snapshot = await _companiesCollection.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  Future<void> clearNotes() async {
+    final snapshot = await _notesCollection.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  Future<void> deleteUserData() async {
+    // Clear all sub-collections
+    await clearDSAProblems();
+    await clearCompanies();
+    await clearNotes();
+    
+    // Clear activity
+    final activitySnapshot = await _activityCollection.get();
+    for (var doc in activitySnapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    // Clear meta
+    final metaDocs = await _firestore.collection('users').doc(userId).collection('meta').get();
+    for (var doc in metaDocs.docs) {
+      await doc.reference.delete();
+    }
+
+    // Finally delete user document
+    await _firestore.collection('users').doc(userId).delete();
+  }
 }

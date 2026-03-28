@@ -4,6 +4,7 @@ import '../screens/dsa_tracker_screen.dart';
 import '../screens/companies_screen.dart';
 import '../screens/notes_screen.dart';
 import '../screens/roadmap_screen.dart';
+import '../screens/leaderboard_screen.dart'; // Add this line
 import '../services/auth_service.dart';
 
 class MainScreen extends StatefulWidget {
@@ -32,22 +33,6 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF000000),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: const Text('Lagja'),
-        shape: const Border(
-          bottom: BorderSide(color: Color(0xFF38383A), width: 0.3),
-        ),
-        actions: [
-          IconButton(
-            onPressed: _handleLogout,
-            icon: const Icon(Icons.logout, color: Color(0xFF8E8E93), size: 22),
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -105,19 +90,4 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Future<void> _handleLogout() async {
-    try {
-      await _authService.signOut();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to logout: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
 }
