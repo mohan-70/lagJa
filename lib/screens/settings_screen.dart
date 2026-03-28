@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -154,6 +155,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildTile("App Version", trailing: "1.0.0"),
             _buildDivider(),
             _buildTile("Theme", trailing: "Dark"),
+            _buildDivider(),
+            _buildTile(
+              "Privacy Policy", 
+              trailingIcon: Icons.open_in_new, 
+              onTap: () => launchUrl(Uri.parse("https://mohan-70.github.io/lagja-privacy")),
+            ),
           ]),
           const SizedBox(height: 24),
           _buildHeader("DATA"),
@@ -220,13 +227,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildTile(String title, {String? trailing, bool showChevron = false, bool isDestructive = false, VoidCallback? onTap}) {
+  Widget _buildTile(String title, {String? trailing, IconData? trailingIcon, bool showChevron = false, bool isDestructive = false, VoidCallback? onTap}) {
     return ListTile(
       onTap: onTap,
       title: Text(title, style: TextStyle(color: isDestructive ? const Color(0xFFFF453A) : Colors.white, fontSize: 16)),
-      trailing: trailing != null 
-        ? Text(trailing, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16))
-        : showChevron ? const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)) : null,
+      trailing: trailingIcon != null
+        ? Icon(trailingIcon, color: const Color(0xFF8E8E93), size: 20)
+        : (trailing != null 
+          ? Text(trailing, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16))
+          : (showChevron ? const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)) : null)),
     );
   }
 
