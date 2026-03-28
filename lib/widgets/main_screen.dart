@@ -31,43 +31,19 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: const Color(0xFF000000),
         elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF6C63FF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.rocket_launch,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Lagja',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+        scrolledUnderElevation: 0,
+        title: const Text('Lagja'),
+        shape: const Border(
+          bottom: BorderSide(color: Color(0xFF38383A), width: 0.3),
         ),
         actions: [
           IconButton(
             onPressed: _handleLogout,
-            icon: const Icon(
-              Icons.logout,
-              color: Colors.white,
-            ),
+            icon: const Icon(Icons.logout, color: Color(0xFF8E8E93), size: 22),
             tooltip: 'Logout',
           ),
         ],
@@ -77,15 +53,11 @@ class _MainScreenState extends State<MainScreen> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+        decoration: const BoxDecoration(
+          color: Color(0xFF000000),
+          border: Border(
+            top: BorderSide(color: Color(0xFF38383A), width: 0.3),
+          ),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -98,14 +70,14 @@ class _MainScreenState extends State<MainScreen> {
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: const Color(0xFF6C63FF),
-          unselectedItemColor: const Color(0xFF9E9E9E),
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
+          unselectedItemColor: const Color(0xFF8E8E93),
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
               activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+              label: 'Today',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.code_outlined),
@@ -122,7 +94,6 @@ class _MainScreenState extends State<MainScreen> {
               activeIcon: Icon(Icons.note_alt),
               label: 'Notes',
             ),
-            // 5th tab: AI Roadmap Generator
             BottomNavigationBarItem(
               icon: Icon(Icons.map_outlined),
               activeIcon: Icon(Icons.map),

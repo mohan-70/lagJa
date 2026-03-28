@@ -4,7 +4,6 @@ import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -13,106 +12,55 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  static const _purple = Color(0xFF6C63FF);
+  static const _bg = Color(0xFF000000);
+  static const _card = Color(0xFF1C1C1E);
+  static const _border = Color(0xFF2C2C2E);
+  static const _textSecondary = Color(0xFF8E8E93);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: _bg,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Spacer(),
-                
-                // App Logo and Title
-                Column(
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6C63FF),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.rocket_launch,
-                        size: 60,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    
-                    const Text(
-                      'Lagja 🚀',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    const Text(
-                      'Your Placement Preparation Companion',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF9E9E9E),
-                        fontWeight: FontWeight.w400,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 64),
-                
-                // Features
+                const Spacer(flex: 2),
                 Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                    ),
-                  ),
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(color: _purple, borderRadius: BorderRadius.circular(24)),
+                  child: const Icon(Icons.rocket_launch_rounded, size: 50, color: Colors.white),
+                ),
+                const SizedBox(height: 32),
+                const Text('Lagja', style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w700, letterSpacing: -1.5)),
+                const SizedBox(height: 8),
+                const Text('Your Placement Companion', style: TextStyle(color: _textSecondary, fontSize: 17, fontWeight: FontWeight.w400)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border, width: 0.5)),
                   child: Column(
                     children: [
-                      _buildFeatureItem(Icons.track_changes, 'Track DSA Problems'),
-                      const SizedBox(height: 16),
-                      _buildFeatureItem(Icons.business, 'Manage Applications'),
-                      const SizedBox(height: 16),
-                      _buildFeatureItem(Icons.note_alt, 'Interview Notes'),
-                      const SizedBox(height: 16),
-                      _buildFeatureItem(Icons.local_fire_department, 'Activity Streaks'),
+                      _feature('DSA Tracker', Icons.code_rounded),
+                      _divider(),
+                      _feature('Application Manager', Icons.business_center_rounded),
+                      _divider(),
+                      _feature('Interview Notes', Icons.note_alt_rounded),
+                      _divider(),
+                      _feature('AI Roadmaps', Icons.map_rounded),
                     ],
                   ),
                 ),
-                
-                const Spacer(),
-                
-                // Google Sign-In Button
-                _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
-                        ),
-                      )
-                    : _buildGoogleSignInButton(),
-                
-                const SizedBox(height: 32),
+                const Spacer(flex: 2),
+                _isLoading 
+                    ? const CircularProgressIndicator(color: _purple) 
+                    : SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _handleGoogleSignIn, child: const Text('Continue with Google'))),
+                const SizedBox(height: 48),
               ],
             ),
           ),
@@ -121,97 +69,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildFeatureItem(IconData icon, String text) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF6C63FF),
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
+  Widget _feature(String text, IconData icon) {
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Row(children: [Icon(icon, color: _purple, size: 22), const SizedBox(width: 16), Text(text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500))]));
   }
 
-  Widget _buildGoogleSignInButton() {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: const Color(0xFF6C63FF),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: _handleGoogleSignIn,
-          child: const Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.login, color: Colors.white, size: 24),
-                SizedBox(width: 12),
-                Text(
-                  'Continue with Google',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _divider() => const Divider(color: Color(0xFF38383A), height: 1, indent: 38);
 
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
-
-    try {
-      await _authService.signInWithGoogle();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to sign in: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    try { await _authService.signInWithGoogle(); } 
+    catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'))); } 
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 }

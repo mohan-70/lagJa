@@ -5,7 +5,6 @@ import '../services/firestore_service.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
-
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
@@ -16,6 +15,12 @@ class _NotesScreenState extends State<NotesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  static const _purple = Color(0xFF6C63FF);
+  static const _bg = Color(0xFF000000);
+  static const _card = Color(0xFF1C1C1E);
+  static const _border = Color(0xFF2C2C2E);
+  static const _textSecondary = Color(0xFF8E8E93);
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -25,102 +30,90 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: _bg,
         elevation: 0,
-        title: const Text(
-          'Interview Notes',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        scrolledUnderElevation: 0,
+        title: const Text('Notes'),
+        shape: const Border(bottom: BorderSide(color: Color(0xFF38383A), width: 0.3)),
         actions: [
-          IconButton(
-            onPressed: _showAddNoteBottomSheet,
-            icon: const Icon(Icons.add, color: Colors.white),
-            tooltip: 'Add Note',
-          ),
+          IconButton(onPressed: _showAddNoteBottomSheet, icon: const Icon(Icons.add_rounded, color: _purple)),
         ],
       ),
       body: Column(
         children: [
-          // Search Bar
-          Container(
+          Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search by company name...',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF6C63FF)),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                        icon: const Icon(Icons.clear, color: Color(0xFF6C63FF)),
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFF1A1A2E),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
+              onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+              decoration: const InputDecoration(hintText: 'Search by company...', prefixIcon: Icon(Icons.search_rounded, color: _textSecondary, size: 20)),
             ),
           ),
-          
-          // Notes List
           Expanded(
             child: StreamBuilder<List<Note>>(
-              stream: _searchQuery.isEmpty
-                  ? _firestoreService.getNotes()
-                  : _firestoreService.searchNotes(_searchQuery),
+              stream: _searchQuery.isEmpty ? _firestoreService.getNotes() : _firestoreService.searchNotes(_searchQuery),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: _purple));
                 final notes = snapshot.data ?? [];
-
-                if (notes.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: notes.length,
-                  itemBuilder: (context, index) {
-                    final note = notes[index];
-                    return _buildNoteCard(note);
-                  },
+                if (notes.isEmpty) return _buildEmptyState();
+                return ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  children: [
+                    _buildSectionHeader('${notes.length} INTERVIEW NOTES'),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.5)),
+                      child: Column(
+                        children: List.generate(notes.length, (i) {
+                          final n = notes[i];
+                          return Column(
+                            children: [
+                              _buildNoteItem(n),
+                              if (i < notes.length - 1) const Divider(color: Color(0xFF38383A), height: 0.5, indent: 16),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(title, style: const TextStyle(color: _textSecondary, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3));
+  }
+
+  Widget _buildNoteItem(Note n) {
+    return InkWell(
+      onLongPress: () => _showDeleteConfirmation(n),
+      onTap: () => _showNoteDetail(n),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(n.companyName, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(n.content, style: const TextStyle(color: _textSecondary, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 6),
+                  Text(_formatDate(n.createdAt), style: const TextStyle(color: Color(0xFF48484A), fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF48484A), size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -130,490 +123,28 @@ class _NotesScreenState extends State<NotesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
-              borderRadius: BorderRadius.circular(60),
-            ),
-            child: const Icon(
-              Icons.note_alt,
-              size: 60,
-              color: Color(0xFF6C63FF),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'No Notes Yet',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _searchQuery.isEmpty
-                ? 'Start documenting your interview experiences'
-                : 'No notes found for "$_searchQuery"',
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 16,
-            ),
-          ),
-          if (_searchQuery.isEmpty) ...[
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _showAddNoteBottomSheet,
-              icon: const Icon(Icons.add),
-              label: const Text('Add First Note'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C63FF),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
+          const Icon(Icons.note_alt_rounded, size: 64, color: _border),
+          const SizedBox(height: 16),
+          const Text('No notes yet.', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+          Text(_searchQuery.isEmpty ? 'Document your interview details.' : 'No matches found.', style: TextStyle(color: _textSecondary, fontSize: 15)),
         ],
       ),
     );
   }
 
-  Widget _buildNoteCard(Note note) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row
-          Row(
-            children: [
-              // Company Icon and Name
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.business,
-                        color: Color(0xFF6C63FF),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        note.companyName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Delete Button
-              IconButton(
-                onPressed: () => _showDeleteConfirmation(note),
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                tooltip: 'Delete',
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Note Content Preview
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[800]?.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  note.content.length > 150
-                      ? '${note.content.substring(0, 150)}...'
-                      : note.content,
-                  style: TextStyle(
-                    color: Colors.grey[300],
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                ),
-                if (note.content.length > 150) ...[
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () => _showNoteModal(note),
-                    child: const Text(
-                      'Read More',
-                      style: TextStyle(
-                        color: Color(0xFF6C63FF),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Date
-          Row(
-            children: [
-              Icon(Icons.access_time, color: Colors.grey[400], size: 16),
-              const SizedBox(width: 4),
-              Text(
-                _formatDate(note.createdAt),
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  void _showAddNoteBottomSheet() {
+    final companyC = TextEditingController();
+    final contentC = TextEditingController();
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: _bg, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (c) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 24, left: 16, right: 16), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('New Note', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)), const SizedBox(height: 24), TextField(controller: companyC, decoration: const InputDecoration(hintText: 'Company Name')), const SizedBox(height: 16), TextField(controller: contentC, decoration: const InputDecoration(hintText: 'Note details...'), maxLines: 6), const SizedBox(height: 32), SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: () async { if (companyC.text.isEmpty) return; await _firestoreService.addNote(Note(id: _uuid.v4(), companyName: companyC.text, content: contentC.text, createdAt: DateTime.now())); Navigator.pop(context); }, child: const Text('Add Note'))), const SizedBox(height: 32)])));
   }
 
-  void _showNoteModal(Note note) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.business,
-                      color: Color(0xFF6C63FF),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      note.companyName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Date
-              Row(
-                children: [
-                  Icon(Icons.access_time, color: Colors.grey[400], size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatDate(note.createdAt),
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800]?.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      note.content,
-                      style: TextStyle(
-                        color: Colors.grey[300],
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void _showNoteDetail(Note n) {
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: _bg, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (b) => DraggableScrollableSheet(expand: false, initialChildSize: 0.8, minChildSize: 0.5, maxChildSize: 0.95, builder: (c, s) => Container(padding: const EdgeInsets.all(24), child: ListView(controller: s, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Interview Note', style: TextStyle(color: _textSecondary, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5)), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Color(0xFF48484A)))]), const SizedBox(height: 8), Text(n.companyName, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -1)), Text(_formatDate(n.createdAt), style: const TextStyle(color: _textSecondary, fontSize: 15)), const SizedBox(height: 32), Text(n.content, style: const TextStyle(color: Colors.white, fontSize: 17, height: 1.5))]))));
   }
 
-void _showAddNoteBottomSheet() {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: const Color(0xFF1A1A2E),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) => _buildAddNoteBottomSheet(),
-  );
-}
-
-Widget _buildAddNoteBottomSheet() {
-  final companyController = TextEditingController();
-  final contentController = TextEditingController();
-
-  return StatefulBuilder(
-    builder: (context, setState) {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          top: 20,
-          left: 20,
-          right: 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Add Interview Note',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Company Name Field
-            TextField(
-              controller: companyController,
-              decoration: InputDecoration(
-                labelText: 'Company Name',
-                labelStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: const Color(0xFF0F0F1A),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[600]!),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Content Field
-            TextField(
-              controller: contentController,
-              decoration: InputDecoration(
-                labelText: 'Note Content',
-                labelStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: const Color(0xFF0F0F1A),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[600]!),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-              maxLines: 8,
-              minLines: 4,
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Add Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (companyController.text.trim().isEmpty ||
-                      contentController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please fill all fields'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  final note = Note(
-                    id: _uuid.v4(),
-                    companyName: companyController.text.trim(),
-                    content: contentController.text.trim(),
-                    createdAt: DateTime.now(),
-                  );
-
-                  final messenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(context);
-                  try {
-                    await _firestoreService.addNote(note);
-                    if (mounted) {
-                      navigator.pop();
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Note added successfully!'),
-                          backgroundColor: Color(0xFF4CAF50),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to add note: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C63FF),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Add Note',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-void _showDeleteConfirmation(Note note) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: const Color(0xFF1A1A2E),
-      title: const Text(
-        'Delete Note',
-        style: TextStyle(color: Colors.white),
-      ),
-      content: Text(
-        'Are you sure you want to delete this note for ${note.companyName}?',
-        style: TextStyle(color: Colors.grey[300]),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(color: Color(0xFF9E9E9E)),
-          ),
-        ),
-        TextButton(
-          onPressed: () async {
-            final messenger = ScaffoldMessenger.of(context);
-            Navigator.pop(context);
-            try {
-              await _firestoreService.deleteNote(note.id);
-              if (mounted) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Note deleted'),
-                    backgroundColor: Color(0xFF4CAF50),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to delete note: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-          },
-          child: const Text(
-            'Delete',
-            style: TextStyle(color: Colors.red),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-String _formatDate(DateTime date) {
-  final now = DateTime.now();
-  final difference = now.difference(date);
-
-  if (difference.inDays == 0) {
-    return 'Today at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  } else if (difference.inDays == 1) {
-    return 'Yesterday at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  } else if (difference.inDays < 7) {
-    return '${difference.inDays} days ago';
-  } else {
-    return '${date.day}/${date.month}/${date.year}';
+  void _showDeleteConfirmation(Note n) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(backgroundColor: _card, title: const Text('Delete'), content: Text('Remove note for ${n.companyName}?'), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: _textSecondary))), TextButton(onPressed: () async { Navigator.pop(ctx); await _firestoreService.deleteNote(n.id); }, child: const Text('Delete', style: TextStyle(color: Color(0xFFFF453A))))]));
   }
-}
+
+  String _formatDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
 }
