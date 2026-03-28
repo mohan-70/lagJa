@@ -9,9 +9,9 @@
 class ApiConstants {
   /// Gemini 2.0 Flash API Key
   /// Replace it with a new key from https://aistudio.google.com/app/apikey
-  static const String geminiApiKey = 'YOUR_NEW_API_KEY_HERE';
+  static const String geminiApiKey = 'AIzaSyD7C5gO9z76SGrtm_309SaTMvAF8fxvUBI';
 
   /// Full Gemini API endpoint with the key appended
   static const String geminiApiUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiApiKey';
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$geminiApiKey';
 }
