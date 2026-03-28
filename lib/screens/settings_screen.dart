@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/ui/app_card.dart';
+import '../widgets/ui/ui_constants.dart';
+import '../widgets/ui/section_header.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,41 +19,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
 
   void _updateDisplayName() {
-    final controller = TextEditingController(text: _authService.currentUserName);
+    final controller =
+        TextEditingController(text: _authService.currentUserName);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text('Update Name', style: TextStyle(color: Colors.white)),
+        title: const Text('Update Name'),
         content: TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
             hintText: 'Enter your name',
-            hintStyle: TextStyle(color: Color(0xFF8E8E93)),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF8E8E93)))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel',
+                  style: TextStyle(color: AppColors.textSecondary))),
           TextButton(
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
                 try {
-                  await FirebaseAuth.instance.currentUser?.updateDisplayName(newName);
-                  if (mounted) {
+                  await FirebaseAuth.instance.currentUser
+                      ?.updateDisplayName(newName);
+                  if (context.mounted) {
                     setState(() {});
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name updated')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Name updated')));
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: AppColors.error));
                   }
                 }
               }
             },
-            child: const Text('Update', style: TextStyle(color: Color(0xFF6C63FF))),
+            child:
+                const Text('Update', style: TextStyle(color: AppColors.accent)),
           ),
         ],
       ),
@@ -61,26 +70,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: const Text('This action cannot be undone.', style: TextStyle(color: Color(0xFF8E8E93))),
+        title: Text(title),
+        content: const Text('This action cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF8E8E93)))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel',
+                  style: TextStyle(color: AppColors.textSecondary))),
           TextButton(
             onPressed: () async {
               try {
                 await action();
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data cleared')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Data cleared')));
                 }
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: AppColors.error));
                 }
               }
             },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            child: const Text('Clear', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -91,22 +105,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text('Sign Out?', style: TextStyle(color: Colors.white)),
+        title: const Text('Sign Out?'),
+        content: const Text('Are you sure you want to sign out?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF8E8E93)))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel',
+                  style: TextStyle(color: AppColors.textSecondary))),
           TextButton(
             onPressed: () async {
               try {
                 await _authService.signOut();
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: AppColors.error));
                 }
               }
             },
-            child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Sign Out', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -117,24 +139,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text('Delete Account?', style: TextStyle(color: Colors.white)),
-        content: const Text('This will permanently delete your account and all your data. This action is irreversible.', style: TextStyle(color: Color(0xFF8E8E93))),
+        title: const Text('Delete Account?'),
+        content: const Text(
+            'This will permanently delete your account and all your data. This action is irreversible.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Color(0xFF8E8E93)))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel',
+                  style: TextStyle(color: AppColors.textSecondary))),
           TextButton(
             onPressed: () async {
               try {
                 await _firestoreService.deleteUserData();
                 await FirebaseAuth.instance.currentUser?.delete();
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: AppColors.error));
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Delete', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -149,36 +179,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildProfileSection(),
-          const SizedBox(height: 24),
-          _buildHeader("APP"),
-          _buildGroup([
-            _buildTile("App Version", trailing: "1.0.0"),
-            _buildDivider(),
-            _buildTile("Theme", trailing: "Dark"),
-            _buildDivider(),
-            _buildTile(
-              "Privacy Policy", 
-              trailingIcon: Icons.open_in_new, 
-              onTap: () => launchUrl(Uri.parse("https://mohan-70.github.io/lagja-privacy")),
+          const SectionHeader("APP"),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildTile("App Version", trailing: "1.0.0"),
+                _buildDivider(),
+                _buildTile("Theme", trailing: "Premium Dark"),
+                _buildDivider(),
+                _buildTile(
+                  "Privacy Policy",
+                  trailingIcon: Icons.open_in_new,
+                  onTap: () => launchUrl(
+                      Uri.parse("https://mohan-70.github.io/lagja-privacy")),
+                ),
+              ],
             ),
-          ]),
-          const SizedBox(height: 24),
-          _buildHeader("DATA"),
-          _buildGroup([
-            _buildTile("Clear DSA Problems", showChevron: true, onTap: () => _confirmClearData("Clear DSA Problems?", _firestoreService.clearDSAProblems)),
-            _buildDivider(),
-            _buildTile("Clear Companies", showChevron: true, onTap: () => _confirmClearData("Clear Companies?", _firestoreService.clearCompanies)),
-            _buildDivider(),
-            _buildTile("Clear Notes", showChevron: true, onTap: () => _confirmClearData("Clear Notes?", _firestoreService.clearNotes)),
-          ]),
-          const SizedBox(height: 24),
-          _buildHeader("ACCOUNT"),
-          _buildGroup([
-            _buildTile("Sign Out", isDestructive: true, onTap: _confirmSignOut),
-            _buildDivider(),
-            _buildTile("Delete Account", isDestructive: true, onTap: _confirmDeleteAccount),
-          ]),
-          const SizedBox(height: 40),
+          ),
+          const SectionHeader("DATA MANAGEMENT"),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildTile("Clear DSA Problems",
+                    showChevron: true,
+                    onTap: () => _confirmClearData(
+                        "Clear DSA Problems?", _firestoreService.clearDSAProblems)),
+                _buildDivider(),
+                _buildTile("Clear Companies",
+                    showChevron: true,
+                    onTap: () => _confirmClearData(
+                        "Clear Companies?", _firestoreService.clearCompanies)),
+                _buildDivider(),
+                _buildTile("Clear Notes",
+                    showChevron: true,
+                    onTap: () => _confirmClearData(
+                        "Clear Notes?", _firestoreService.clearNotes)),
+              ],
+            ),
+          ),
+          const SectionHeader("ACCOUNT"),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _buildTile("Sign Out", isDestructive: true, onTap: _confirmSignOut),
+                _buildDivider(),
+                _buildTile("Delete Account",
+                    isDestructive: true, onTap: _confirmDeleteAccount),
+              ],
+            ),
+          ),
+          const SizedBox(height: 48),
         ],
       ),
     );
@@ -187,59 +240,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildProfileSection() {
     final name = _authService.currentUserName ?? 'User';
     final email = _authService.currentUserEmail ?? '';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5)),
-      child: Row(
-        children: [
-          CircleAvatar(radius: 30, backgroundColor: const Color(0xFF6C63FF), child: Text(name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
-                    IconButton(onPressed: _updateDisplayName, icon: const Icon(Icons.edit_outlined, color: Color(0xFF8E8E93), size: 18)),
-                  ],
-                ),
-                Text(email, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 14)),
-              ],
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: AppColors.accent,
+              backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+              child: photoUrl == null
+                  ? Text(
+                      name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U',
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white))
+                  : null,
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                          child: Text(name,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis)),
+                      IconButton(
+                          onPressed: _updateDisplayName,
+                          icon: const Icon(Icons.edit_outlined,
+                              color: AppColors.textSecondary, size: 18)),
+                    ],
+                  ),
+                  Text(email,
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 14)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 12, bottom: 8),
-      child: Text(text, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _buildGroup(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5)),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildTile(String title, {String? trailing, IconData? trailingIcon, bool showChevron = false, bool isDestructive = false, VoidCallback? onTap}) {
+  Widget _buildTile(String title,
+      {String? trailing,
+      IconData? trailingIcon,
+      bool showChevron = false,
+      bool isDestructive = false,
+      VoidCallback? onTap}) {
     return ListTile(
       onTap: onTap,
-      title: Text(title, style: TextStyle(color: isDestructive ? const Color(0xFFFF453A) : Colors.white, fontSize: 16)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      title: Text(title,
+          style: TextStyle(
+              color: isDestructive ? AppColors.error : Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500)),
       trailing: trailingIcon != null
-        ? Icon(trailingIcon, color: const Color(0xFF8E8E93), size: 20)
-        : (trailing != null 
-          ? Text(trailing, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16))
-          : (showChevron ? const Icon(Icons.chevron_right, color: Color(0xFF8E8E93)) : null)),
+          ? Icon(trailingIcon, color: AppColors.textSecondary, size: 20)
+          : (trailing != null
+              ? Text(trailing,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 16))
+              : (showChevron
+                  ? const Icon(Icons.chevron_right, color: AppColors.textSecondary)
+                  : null)),
     );
   }
 
   Widget _buildDivider() {
-    return const Divider(color: Color(0xFF2C2C2E), height: 0.5, indent: 16);
+    return const Divider(color: AppColors.border, height: 1, indent: 16);
   }
 }

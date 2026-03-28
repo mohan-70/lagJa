@@ -4,8 +4,7 @@ import '../screens/dsa_tracker_screen.dart';
 import '../screens/companies_screen.dart';
 import '../screens/notes_screen.dart';
 import '../screens/roadmap_screen.dart';
-import '../screens/leaderboard_screen.dart'; // Add this line
-import '../services/auth_service.dart';
+import '../widgets/ui/ui_constants.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -15,33 +14,31 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final AuthService _authService = AuthService();
   int _currentIndex = 0;
 
   List<Widget> get _screens => [
-    const DashboardScreen(),
-    const DSATrackerScreen(),
-    const CompaniesScreen(),
-    const NotesScreen(),
-    // 5th tab — AI Roadmap Generator
-    RoadmapScreen(
-      onSaved: () => setState(() => _currentIndex = 1), // jump to DSA tab
-    ),
-  ];
+        const DashboardScreen(),
+        const DSATrackerScreen(),
+        const CompaniesScreen(),
+        const NotesScreen(),
+        RoadmapScreen(
+          onSaved: () => setState(() => _currentIndex = 1),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF000000),
+          color: AppColors.background,
           border: Border(
-            top: BorderSide(color: Color(0xFF38383A), width: 0.3),
+            top: BorderSide(color: AppColors.border, width: 0.3),
           ),
         ),
         child: BottomNavigationBar(
@@ -54,10 +51,11 @@ class _MainScreenState extends State<MainScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF6C63FF),
-          unselectedItemColor: const Color(0xFF8E8E93),
+          selectedItemColor: AppColors.accent,
+          unselectedItemColor: AppColors.textSecondary,
           selectedFontSize: 11,
           unselectedFontSize: 11,
+          showUnselectedLabels: true,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
@@ -89,5 +87,5 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-
 }
+

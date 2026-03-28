@@ -3,6 +3,10 @@ import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../widgets/ui/app_card.dart';
+import '../widgets/ui/fake_glass_card.dart';
+import '../widgets/ui/section_header.dart';
+import '../widgets/ui/ui_constants.dart';
 import 'dsa_tracker_screen.dart';
 import 'companies_screen.dart';
 import 'leaderboard_screen.dart';
@@ -20,26 +24,58 @@ class DashboardScreen extends StatelessWidget {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        backgroundColor: const Color(0xFF000000),
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF000000),
-          title: const Text('Lagja 🚀', style: TextStyle(fontWeight: FontWeight.bold)),
-          centerTitle: false,
+          backgroundColor: AppColors.background,
           elevation: 0,
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF6C63FF),
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicatorWeight: 2,
-            labelColor: Colors.white,
-            unselectedLabelColor: Color(0xFF8E8E93),
-            labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            isScrollable: false,
-            tabs: [
-              Tab(text: "Overview"),
-              Tab(text: "Leaderboard"),
-              Tab(text: "Company Intel"),
-              Tab(text: "Settings"),
+          toolbarHeight: 80,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Lagja 🚀',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                'Hey ${authService.currentUserName?.split(' ').first ?? 'User'} 👋',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
+          ),
+          centerTitle: false,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(50),
+            child: Column(
+              children: [
+                const TabBar(
+                  indicatorColor: AppColors.accent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorWeight: 2,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  labelStyle:
+                      TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  isScrollable: false,
+                  tabs: [
+                    Tab(text: "Overview"),
+                    Tab(text: "Leaderboard"),
+                    Tab(text: "Intel"),
+                    Tab(text: "Settings"),
+                  ],
+                ),
+                Container(
+                  height: 0.3,
+                  color: AppColors.border,
+                ),
+              ],
+            ),
           ),
         ),
         body: TabBarView(
@@ -54,28 +90,19 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOverviewTab(AuthService authService, FirestoreService firestoreService, BuildContext context) {
+  Widget _buildOverviewTab(AuthService authService,
+      FirestoreService firestoreService, BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildGreeting(authService),
-          const SizedBox(height: 32),
-          _buildSectionHeader('YOUR OVERVIEW'),
-          const SizedBox(height: 12),
-          _buildStatsCards(firestoreService),
-          const SizedBox(height: 24),
-          _buildSectionHeader('STREAK'),
-          const SizedBox(height: 12),
           _buildStreakCard(firestoreService),
           const SizedBox(height: 24),
-          _buildSectionHeader('ACTIVITY'),
-          const SizedBox(height: 12),
+          _buildStatsCards(firestoreService),
+          const SectionHeader("ACTIVITY"),
           _buildActivityHeatmap(firestoreService),
-          const SizedBox(height: 24),
-          _buildSectionHeader('QUICK ACTIONS'),
-          const SizedBox(height: 12),
+          const SectionHeader("QUICK ACTIONS"),
           _buildQuickActions(context),
           const SizedBox(height: 48),
         ],
@@ -83,62 +110,101 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(title,
-        style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3));
-  }
-
-  Widget _buildGreeting(AuthService authService) {
-    final hour = DateTime.now().hour;
-    String greeting = 'Good ';
-    if (hour < 12) greeting += 'Morning';
-    else if (hour < 17) greeting += 'Afternoon';
-    else greeting += 'Evening';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('$greeting,', style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 17, fontWeight: FontWeight.w400)),
-        Text('${authService.currentUserName?.split(' ').first ?? 'User'}!',
-            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -1)),
-      ],
-    );
-  }
-
   Widget _buildStatsCards(FirestoreService firestoreService) {
     return StreamBuilder<Map<String, int>>(
       stream: firestoreService.getStats(),
       builder: (context, snapshot) {
-        final stats = snapshot.data ?? {'totalProblems': 0, 'solvedProblems': 0, 'companies': 0};
-        return Container(
-          decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5)),
-          child: Column(
-            children: [
-              _buildStatItem('DSA Completion', '${stats['solvedProblems']}/${stats['totalProblems']}', Icons.code_rounded, const Color(0xFF6C63FF)),
-              const Divider(color: Color(0xFF38383A), height: 0.5, indent: 56),
-              _buildStatItem('Applications', '${stats['companies']}', Icons.business_center_rounded, const Color(0xFF30D158)),
-            ],
-          ),
+        final stats = snapshot.data ??
+            {'totalProblems': 0, 'solvedProblems': 0, 'companies': 0};
+        return Row(
+          children: [
+            Expanded(
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.code, color: AppColors.accent, size: 22),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${stats['solvedProblems']}',
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Text(
+                      'SOLVED',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.business_center,
+                        color: AppColors.accent, size: 22),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${stats['companies']}',
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Text(
+                      'APPLIED',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.list_alt, color: AppColors.accent, size: 22),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${stats['totalProblems']}',
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Text(
+                      'TOTAL',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         );
       },
-    );
-  }
-
-  Widget _buildStatItem(String title, String value, IconData icon, Color iconColor) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w500))),
-          Text(value, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 17, fontWeight: FontWeight.w600)),
-        ],
-      ),
     );
   }
 
@@ -149,34 +215,36 @@ class DashboardScreen extends StatelessWidget {
         final activityData = snapshot.data ?? {};
         final streak = _calculateStreak(activityData);
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5)),
+        return FakeGlassCard(
           child: Row(
             children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [const Color(0xFF6C63FF).withOpacity(0.08), Colors.transparent],
-                      ),
-                    ),
-                  ),
-                  const Text('🔥', style: TextStyle(fontSize: 32)),
-                ],
-              ),
+              const Text('🔥', style: TextStyle(fontSize: 40)),
               const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$streak Day Streak', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-                  const Text('Consistency is key.', style: TextStyle(color: Color(0xFF8E8E93), fontSize: 14)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$streak Day Streak',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Text(
+                      'Consistency is your superpower',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -186,37 +254,34 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildActivityHeatmap(FirestoreService firestoreService) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
-      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5)),
+    return AppCard(
+      padding: const EdgeInsets.all(8),
       child: StreamBuilder<Map<String, int>>(
         stream: firestoreService.getActivityData(),
         builder: (context, snapshot) {
           final activityData = snapshot.data ?? {};
           final convertedData = <DateTime, int>{};
-          activityData.forEach((key, value) => convertedData[DateTime.parse(key)] = value);
+          activityData.forEach(
+              (key, value) => convertedData[DateTime.parse(key)] = value);
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: HeatMapCalendar(
-                datasets: convertedData,
-                colorMode: ColorMode.color, // Fixed: Changed from invalid .description to .color
-                showColorTip: true,
-                size: 28,
-                fontSize: 10,
-                margin: const EdgeInsets.all(2),
-                weekTextColor: const Color(0xFF8E8E93),
-                textColor: Colors.white,
-                monthFontSize: 14,
-                colorsets: {
-                  1: const Color(0xFF6C63FF).withOpacity(0.2),
-                  2: const Color(0xFF6C63FF).withOpacity(0.4),
-                  3: const Color(0xFF6C63FF).withOpacity(0.6),
-                  4: const Color(0xFF6C63FF).withOpacity(0.8),
-                  5: const Color(0xFF6C63FF),
-                },
-              ),
+            child: HeatMapCalendar(
+              datasets: convertedData,
+              colorMode: ColorMode.color,
+              showColorTip: false,
+              size: 28,
+              fontSize: 10,
+              margin: const EdgeInsets.all(2),
+              weekTextColor: AppColors.textSecondary,
+              textColor: Colors.white,
+              monthFontSize: 14,
+              colorsets: {
+                1: AppColors.accent.withValues(alpha: 0.2),
+                2: AppColors.accent.withValues(alpha: 0.4),
+                3: AppColors.accent.withValues(alpha: 0.6),
+                4: AppColors.accent.withValues(alpha: 0.8),
+                5: AppColors.accent,
+              },
             ),
           );
         },
@@ -225,13 +290,21 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildQuickActions(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5)),
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
-          _buildActionItem('Add DSA Problem', Icons.add_rounded, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const DSATrackerScreen()))),
-          const Divider(color: Color(0xFF38383A), height: 0.5, indent: 56),
-          _buildActionItem('Add Company', Icons.business_rounded, () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CompaniesScreen()))),
+          _buildActionItem(
+              'Practice DSA',
+              Icons.code_rounded,
+              () => Navigator.push(context,
+                  MaterialPageRoute(builder: (c) => const DSATrackerScreen()))),
+          const Divider(color: AppColors.border, height: 1),
+          _buildActionItem(
+              'Track Companies',
+              Icons.business_rounded,
+              () => Navigator.push(context,
+                  MaterialPageRoute(builder: (c) => const CompaniesScreen()))),
         ],
       ),
     );
@@ -240,23 +313,46 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildActionItem(String title, IconData icon, VoidCallback onTap) {
     return ListTile(
       onTap: onTap,
-      leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: const Color(0xFF6C63FF), size: 20)),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w400)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF48484A), size: 20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.accent.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.add, color: AppColors.accent, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing:
+          const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
     );
   }
 
   int _calculateStreak(Map<String, int> activityData) {
     if (activityData.isEmpty) return 0;
-    final sortedDates = activityData.keys.toList()..sort((a, b) => b.compareTo(a));
+    final sortedDates = activityData.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
     int streak = 0;
     DateTime current = DateTime.now();
     for (int i = 0; i < sortedDates.length; i++) {
       final date = DateFormat('yyyy-MM-dd').parse(sortedDates[i]);
       final diff = current.difference(date).inDays;
-      if (diff == streak) streak++;
-      else if (diff > streak) break;
+      if (diff == streak) {
+        streak++;
+      } else if (diff > streak) {
+        break;
+      }
     }
     return streak;
   }
 }
+
