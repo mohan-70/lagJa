@@ -33,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Lagja 🚀',
+                'Lagja',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,

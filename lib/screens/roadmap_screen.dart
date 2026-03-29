@@ -102,7 +102,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(ApiConstants.geminiApiUrl),
+        Uri.parse(ApiConstants.aiApiUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -172,7 +172,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: _state == _ScreenState.loading
-            ? const LagjaLoader(message: 'Gemini is building your roadmap...')
+            ? const LagjaLoader(message: 'Building your specialized roadmap...')
             : _state == _ScreenState.result
                 ? _buildResultView()
                 : _buildFormView(),
@@ -192,7 +192,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Let Gemini build your tailored prep roadmap.',
+            'Generate a high-impact preparation strategy.',
             style: AppStyles.body,
           ),
           const SectionHeader('TARGET COMPANY'),
@@ -545,7 +545,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
     }
 
     try {
-      final response = await http.post(Uri.parse(ApiConstants.geminiApiUrl),
+      final response = await http.post(Uri.parse(ApiConstants.aiApiUrl),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'contents': [

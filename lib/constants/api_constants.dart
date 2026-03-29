@@ -7,11 +7,11 @@
 // as the previous one has been compromised.
 
 class ApiConstants {
-  /// Gemini 2.0 Flash API Key
+  /// Internal AI API Key
   /// Replace it with a new key from https://aistudio.google.com/app/apikey
-  static const String geminiApiKey = 'AIzaSyD7C5gO9z76SGrtm_309SaTMvAF8fxvUBI';
+  static const String aiApiKey = 'AIzaSyD7C5gO9z76SGrtm_309SaTMvAF8fxvUBI';
 
-  /// Full Gemini API endpoint with the key appended
-  static const String geminiApiUrl =
-      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$geminiApiKey';
+  /// Full AI API endpoint with the key appended
+  static const String aiApiUrl =
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$aiApiKey';
 }

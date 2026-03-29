@@ -25,7 +25,7 @@ class LagjaApp extends StatelessWidget {
     final AuthService authService = AuthService();
 
     return MaterialApp(
-      title: 'Lagja 🚀',
+      title: 'Lagja',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

@@ -42,30 +42,33 @@ class _LoginScreenState extends State<LoginScreen> {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Spacer(flex: 3),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        color: AppColors.accent,
-                        child: const Icon(
-                          Icons.rocket_launch_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Lagja 🚀',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
+                    SizedBox(
+                      width: 116,
+                      height: 116,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_isLoading)
+                            const SizedBox(
+                              width: 116,
+                              height: 116,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF6C63FF),
+                              ),
+                            ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Image.asset('assets/icons/app_icon.png',
+                                width: 100, height: 100),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),

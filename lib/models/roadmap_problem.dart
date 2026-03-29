@@ -7,7 +7,7 @@ class RoadmapProblem {
   String topic;
   String title;
   String difficulty; // "Easy", "Medium", or "Hard"
-  String whyImportant; // One-line explanation from Gemini
+  String whyImportant; // One-line explanation from the AI
   bool isSolved;
 
   RoadmapProblem({
@@ -18,7 +18,7 @@ class RoadmapProblem {
     this.isSolved = false,
   });
 
-  /// Creates a [RoadmapProblem] from a raw JSON map returned by Gemini.
+  /// Creates a [RoadmapProblem] from a raw JSON map returned by the AI.
   factory RoadmapProblem.fromMap(Map<String, dynamic> map) {
     return RoadmapProblem(
       topic: (map['topic'] as String? ?? '').trim(),

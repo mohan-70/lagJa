@@ -188,7 +188,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
             ),
           ),
           Text(
-            'Track your dream companies! 🚀',
+            'Track your dream companies!',
             style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 15,

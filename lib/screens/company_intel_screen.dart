@@ -55,7 +55,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
 
     try {
       final response = await http.post(
-        Uri.parse(ApiConstants.geminiApiUrl),
+        Uri.parse(ApiConstants.aiApiUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
