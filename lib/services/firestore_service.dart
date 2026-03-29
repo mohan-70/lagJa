@@ -120,8 +120,14 @@ class FirestoreService {
     });
   }
 
-  Stream<Map<String, int>> getActivityData() {
-    return _activityCollection.snapshots().map((snapshot) {
+  Stream<Map<String, int>> getActivityData([DateTime? startDate]) {
+    Query query = _activityCollection;
+    if (startDate != null) {
+      final startDateStr = "${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+      query = query.where(FieldPath.documentId, isGreaterThanOrEqualTo: startDateStr);
+    }
+    
+    return query.snapshots().map((snapshot) {
       final Map<String, int> data = {};
       for (var doc in snapshot.docs) {
         data[doc.id] = (doc.data() as Map<String, dynamic>)['count'] ?? 0;

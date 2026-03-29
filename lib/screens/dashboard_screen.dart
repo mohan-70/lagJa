@@ -210,7 +210,7 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildStreakCard(FirestoreService firestoreService) {
     return StreamBuilder<Map<String, int>>(
-      stream: firestoreService.getActivityData(),
+      stream: firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
       builder: (context, snapshot) {
         final activityData = snapshot.data ?? {};
         final streak = _calculateStreak(activityData);
@@ -257,7 +257,7 @@ class DashboardScreen extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(8),
       child: StreamBuilder<Map<String, int>>(
-        stream: firestoreService.getActivityData(),
+        stream: firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
         builder: (context, snapshot) {
           final activityData = snapshot.data ?? {};
           final convertedData = <DateTime, int>{};

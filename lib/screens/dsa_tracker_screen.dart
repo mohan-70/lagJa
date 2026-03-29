@@ -20,6 +20,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
   final Uuid _uuid = const Uuid();
   FilterOption _currentFilter = FilterOption.all;
   String _searchQuery = '';
+  final Map<String, bool> _optimisticSolved = {};
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +203,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                     DifficultyChip(difficulty: p.difficulty),
                     const SizedBox(width: 4),
                     Checkbox(
-                      value: p.isSolved,
+                      value: _optimisticSolved[p.id] ?? p.isSolved,
                       activeColor: AppColors.accent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -247,15 +248,28 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
   }
 
   Future<void> _toggleSolved(DSAProblem p) async {
+    final bool newSolvedState = !p.isSolved;
+    setState(() {
+      _optimisticSolved[p.id] = newSolvedState;
+    });
+
     try {
-      final updated = p.copyWith(isSolved: !p.isSolved);
+      final updated = p.copyWith(isSolved: newSolvedState);
       await _firestoreService.updateDSAProblem(updated);
+      
+      setState(() {
+        _optimisticSolved.remove(p.id); // Clear local map once network syncs
+      });
+      
       if (updated.isSolved) {
         final today = DateTime.now();
         await _firestoreService.incrementActivity(
             '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}');
       }
-    } catch (_) {}
+    } catch (_) {
+      // Revert if saving fails
+      setState(() => _optimisticSolved.remove(p.id));
+    }
   }
 
   void _showDeleteConfirmation(DSAProblem p) {
@@ -401,8 +415,8 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
         case FilterOption.easy: return p.difficulty.toLowerCase() == 'easy';
         case FilterOption.medium: return p.difficulty.toLowerCase() == 'medium';
         case FilterOption.hard: return p.difficulty.toLowerCase() == 'hard';
-        case FilterOption.solved: return p.isSolved;
-        case FilterOption.unsolved: return !p.isSolved;
+        case FilterOption.solved: return (_optimisticSolved[p.id] ?? p.isSolved);
+        case FilterOption.unsolved: return !(_optimisticSolved[p.id] ?? p.isSolved);
       }
     }).toList();
   }

@@ -18,12 +18,12 @@ class _MainScreenState extends State<MainScreen> {
 
   List<Widget> get _screens => [
         const DashboardScreen(),
-        const DSATrackerScreen(),
+        RoadmapScreen(
+          onSaved: () => setState(() => _currentIndex = 4),
+        ),
         const CompaniesScreen(),
         const NotesScreen(),
-        RoadmapScreen(
-          onSaved: () => setState(() => _currentIndex = 1),
-        ),
+        const DSATrackerScreen(),
       ];
 
   @override
@@ -63,9 +63,9 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Today',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.code_outlined),
-              activeIcon: Icon(Icons.code),
-              label: 'DSA',
+              icon: Icon(Icons.map_outlined),
+              activeIcon: Icon(Icons.map),
+              label: 'Roadmap',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.business_outlined),
@@ -78,9 +78,9 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Notes',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined),
-              activeIcon: Icon(Icons.map),
-              label: 'Roadmap',
+              icon: Icon(Icons.code_outlined),
+              activeIcon: Icon(Icons.code),
+              label: 'DSA',
             ),
           ],
         ),

@@ -27,6 +27,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   String? _groupId;
   String? _groupName;
   String? _inviteCode;
+  Future<QuerySnapshot>? _leaderboardFuture;
 
   @override
   void initState() {
@@ -56,6 +57,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               _groupName = groupDoc.data()?['name'];
               _inviteCode = groupDoc.data()?['inviteCode'];
               _isLoading = false;
+              _leaderboardFuture = _fetchLeaderboardData(groupId);
             });
             _syncUserStats(groupId);
             return;
@@ -90,6 +92,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       final now = DateTime.now();
       final monday = now.subtract(Duration(days: now.weekday - 1));
       final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+      
+      final startDateStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 180)));
 
       final activitySnapshot = await _firestore
           .collection('users')
@@ -97,6 +101,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           .collection('data')
           .doc('activity')
           .collection('dates')
+          .where(FieldPath.documentId, isGreaterThanOrEqualTo: startDateStr)
           .get();
 
       int weeklyProblems = 0;
@@ -339,6 +344,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _groupName = name;
         _inviteCode = inviteCode;
         _isLoading = false;
+        _leaderboardFuture = _fetchLeaderboardData(newGroupId);
       });
       _syncUserStats(newGroupId);
     } catch (e) {
@@ -452,6 +458,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _groupName = groupDoc.data()['name'];
         _inviteCode = groupDoc.data()['inviteCode'];
         _isLoading = false;
+        _leaderboardFuture = _fetchLeaderboardData(groupId);
       });
       _showSnackBar('Joined group successfully! 🎉');
       _syncUserStats(groupId);
@@ -467,16 +474,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         length, (index) => chars[Random().nextInt(chars.length)]).join();
   }
 
+  Future<QuerySnapshot> _fetchLeaderboardData(String groupId) {
+    return _firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('members')
+        .orderBy('weeklyProblems', descending: true)
+        .get();
+  }
+
+  Future<void> _refreshLeaderboard() async {
+    if (_groupId != null) {
+      await _syncUserStats(_groupId!);
+      setState(() {
+        _leaderboardFuture = _fetchLeaderboardData(_groupId!);
+      });
+    }
+  }
+
   Widget _buildLeaderboardState() {
     final uid = _auth.currentUser?.uid;
 
-    final body = StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('groups')
-          .doc(_groupId)
-          .collection('members')
-          .orderBy('weeklyProblems', descending: true)
-          .snapshots(),
+    final body = FutureBuilder<QuerySnapshot>(
+      future: _leaderboardFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const LagjaLoader();
@@ -489,9 +509,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         final userIndex = members.indexWhere((m) => m.uid == uid);
         final userMember = userIndex != -1 ? members[userIndex] : null;
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+        return RefreshIndicator(
+          color: AppColors.accent,
+          backgroundColor: AppColors.surface,
+          onRefresh: _refreshLeaderboard,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
             if (userMember != null) _buildRankCard(userIndex + 1, userMember),
             const SectionHeader('LEADERBOARD'),
             ...members.asMap().entries.map((entry) {
@@ -511,6 +536,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             _buildInviteCard(),
             const SizedBox(height: 48),
           ],
+        ),
         );
       },
     );

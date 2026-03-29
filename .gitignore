@@ -46,3 +46,4 @@ app.*.map.json
 
 # API Constants (Sensitive)
 lib/constants/api_constants.dart
+.env
