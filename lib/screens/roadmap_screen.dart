@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import '../constants/api_constants.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/roadmap_problem.dart';
 import '../services/firestore_service.dart';
 import '../widgets/ui/app_card.dart';
@@ -102,7 +102,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(ApiConstants.aiApiUrl),
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${dotenv.env["GEMINI_API_KEY"] ?? ""}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -545,7 +545,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
     }
 
     try {
-      final response = await http.post(Uri.parse(ApiConstants.aiApiUrl),
+      final response = await http.post(Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${dotenv.env["GEMINI_API_KEY"] ?? ""}'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'contents': [
