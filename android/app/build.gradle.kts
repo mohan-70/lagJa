@@ -6,6 +6,35 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+=======
+=======
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+val keystoreProperties = java.util.Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+=======
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+=======
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+}
+
 android {
     namespace = "com.trumos.lagja"
     compileSdk = flutter.compileSdkVersion
@@ -31,11 +60,41 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+=======
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String?
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+=======
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+        }
+    }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+<<<<<<< C:/projects/Lagja/android/app/build.gradle.kts
+            signingConfig signingConfigs.release
+=======
+            signingConfig = signingConfigs.getByName("release")
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
+=======
+            signingConfig = signingConfigs.getByName("release")
+>>>>>>> C:/Users/Windows 11/.windsurf/worktrees/Lagja/Lagja-91fd7245/android/app/build.gradle.kts
         }
     }
 }

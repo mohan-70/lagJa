@@ -47,3 +47,7 @@ app.*.map.json
 # API Constants (Sensitive)
 lib/constants/api_constants.dart
 .env
+
+# Keystore and signing configuration
+android/key.properties
+*.jks
