@@ -153,7 +153,7 @@ class FirestoreService {
         'companies': companiesSnapshot.docs.length,
         'notes': notesSnapshot.docs.length,
       };
-    }).asyncMap((future) => future);
+    }).asyncMap((future) => future).asBroadcastStream();
   }
   // Data Clearing Methods
   Future<void> clearDSAProblems() async {
