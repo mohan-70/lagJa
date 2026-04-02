@@ -220,7 +220,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 onPressed: _showJoinGroupSheet,
                 child: const Text('Join with Code',
                     style: TextStyle(
-                        fontWeight: FontWeight.w600, color: Colors.white)),
+                        fontWeight: FontWeight.w600, color: AppColors.accent)),
               ),
             ),
           ],
@@ -265,7 +265,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3F3F46),
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -273,7 +273,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             const SizedBox(height: 24),
             const Text('Create Group',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
@@ -372,7 +372,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3F3F46),
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -380,13 +380,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             const SizedBox(height: 24),
             const Text('Join Group',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             TextField(
               controller: controller,
-              style: const TextStyle(color: Colors.white, letterSpacing: 4),
+              style: const TextStyle(color: AppColors.textPrimary, letterSpacing: 4),
               textCapitalization: TextCapitalization.characters,
               maxLength: 6,
               decoration: const InputDecoration(
@@ -561,14 +561,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
+            icon: const Icon(Icons.share, color: AppColors.textPrimary),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: _inviteCode ?? ''));
               _showSnackBar('Invite code copied: $_inviteCode 📋');
             },
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
             onSelected: (val) {
               if (val == 'leave') _confirmLeaveGroup();
             },
@@ -597,7 +597,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           children: [
             Text('Your Rank: #$rank',
                 style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 24,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
@@ -661,7 +661,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white)),
+                        color: AppColors.textPrimary)),
               ),
               Expanded(
                 child: Padding(
@@ -671,7 +671,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     children: [
                       Text(member.displayName,
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
                       const SizedBox(height: 2),
@@ -705,7 +705,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         children: [
           const Text('Invite Friends',
               style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
@@ -721,7 +721,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       border: Border.all(color: AppColors.border)),
                   child: Text(_inviteCode ?? '',
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 4,

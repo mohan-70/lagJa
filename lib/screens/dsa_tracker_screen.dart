@@ -87,7 +87,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
             padding: EdgeInsets.zero,
             child: TextField(
               onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: 'Search problems...',
                 prefixIcon: Icon(Icons.search, color: AppColors.accent),
@@ -175,7 +175,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                       Text(
                         p.title,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -230,7 +230,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
           Text(
             'No problems yet',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
@@ -320,7 +320,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3F3F46),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -328,7 +328,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
               const SizedBox(height: 24),
               const Text('New Problem',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 24),

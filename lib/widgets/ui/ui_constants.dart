@@ -1,19 +1,6 @@
 import 'package:flutter/material.dart';
-
-class AppColors {
-  static const Color background = Color(0xFF0F0F1A);
-  static const Color surface = Color(0xFF1A1A2E);
-  static const Color surface2 = Color(0xFF16213E);
-  static const Color border = Color(0xFF2C2C2E);
-  static const Color accent = Color(0xFF6C63FF);
-  static const Color accent2 = Color(0xFF9C63FF);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF8E8E93);
-  static const Color success = Color(0xFF30D158);
-  static const Color warning = Color(0xFFFF9F0A);
-  static const Color error = Color(0xFFFF453A);
-  static const Color info = Color(0xFF3B82F6);
-}
+import '../../theme/app_colors.dart';
+export '../../theme/app_colors.dart';
 
 class AppStyles {
   static const TextStyle heroTitle = TextStyle(

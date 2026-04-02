@@ -186,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 _buildTile("App Version", trailing: "1.0.0"),
                 _buildDivider(),
-                _buildTile("Theme", trailing: "Premium Dark"),
+                _buildTile("Theme", trailing: "Unstop Light"),
                 _buildDivider(),
                 _buildTile(
                   "Privacy Policy",
@@ -270,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                           child: Text(name,
                               style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis)),
@@ -303,7 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(title,
           style: TextStyle(
-              color: isDestructive ? AppColors.error : Colors.white,
+              color: isDestructive ? AppColors.error : AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w500)),
       trailing: trailingIcon != null

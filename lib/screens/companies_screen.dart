@@ -136,7 +136,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                   child: Text(
                     c.name,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -162,7 +162,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
             Text(
               'Added on ${DateFormat('MMM dd, yyyy').format(c.createdAt)}',
               style: const TextStyle(
-                color: Color(0xFF3F3F46),
+                color: AppColors.textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -182,7 +182,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
           Text(
             'No companies yet',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
@@ -225,7 +225,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3F3F46),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -233,7 +233,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
               const SizedBox(height: 24),
               const Text('New Application',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 24),
@@ -312,7 +312,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
           children: [
             const Text('Update Status',
                 style: TextStyle(
-                    color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                    color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
             const SizedBox(height: 24),
             ...ApplicationStatus.values.map((s) => ListTile(
                   onTap: () async {

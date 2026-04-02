@@ -200,7 +200,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             padding: EdgeInsets.zero,
             child: TextField(
               controller: _companyController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: 'e.g. Google, Amazon, TCS',
                 border: InputBorder.none,
@@ -222,7 +222,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                     .toList(),
                 onChanged: (v) => setState(() => _selectedRole = v!),
                 dropdownColor: AppColors.surface,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
               ),
             ),
           ),
@@ -280,7 +280,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                       Text(
                         _savedCompany,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -366,7 +366,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             Text(
               topic.topic,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -656,7 +656,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
                 Text(
                   widget.topic,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -694,7 +694,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
                 child: Text(
                   item['title'] ?? '',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -724,7 +724,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
                 child: Text(
                   item['concept'] ?? '',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -766,7 +766,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
           Text(
             item['question'] ?? item['point'] ?? '',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

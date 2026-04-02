@@ -10,7 +10,7 @@ plan, and crush their placement preparation — powered by AI.
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Gemini](https://img.shields.io/badge/Gemini%202.0%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-6C63FF?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-0052CC?style=for-the-badge)
 
 </div>
 
@@ -18,7 +18,7 @@ plan, and crush their placement preparation — powered by AI.
 
 ## 📱 What is Lagja?
 
-**Lagja** (Hindi: “lag ja apni prep mein”) is an all-in-one AI-powered placement preparation tracker built specifically for Indian engineering students. It combines a DSA tracker, company wishlist, interview notes, AI roadmap generator, company intel, friend leaderboard, and personalized settings — all in one premium dark-themed app.
+**Lagja** (Hindi: “lag ja apni prep mein”) is an all-in-one AI-powered placement preparation tracker built specifically for Indian engineering students. It combines a DSA tracker, company wishlist, interview notes, AI roadmap generator, company intel, friend leaderboard, and personalized settings — all in one premium light-themed app.
 
 -----
 
@@ -115,25 +115,25 @@ Search any company and get:
 
 ## 🎨 Design System
 
-- **Theme**: Dark only — no light mode
-- **Style**: Premium minimal — fake glassmorphism (no BackdropFilter), performance-safe
+- **Theme**: Light — Inspired by Unstop design
+- **Style**: Premium minimal — Light blue cards and deep blue accents
 - **Colors**:
-  - Background: `#0F0F1A`
-  - Surface/Card: `#1A1A2E`
-  - Border: `#2C2C2E`
-  - Accent: `#6C63FF`
-  - Text Primary: `#FFFFFF`
-  - Text Secondary: `#8E8E93`
-  - Success: `#30D158`
-  - Warning: `#FF9F0A`
-  - Error: `#FF453A`
+  - Background: `#FFFFFF` (White)
+  - Surface/Card: `#E8F0FF` (Light Blue)
+  - Border: `#E0E0E0` (Light Gray)
+  - Accent: `#0052CC` (Deep Blue)
+  - Text Primary: `#1A1A1A` (Dark)
+  - Text Secondary: `#4A4A4A` (Dark Gray)
+  - Success: `#10B981` (Green)
+  - Warning: `#FF9F0A` (Orange)
+  - Error: `#FF453A` (Red)
 - **Material 3** with central ThemeData enforcement
 
 ### Reusable Widgets (`lib/widgets/ui/`)
 
-- `AppCard` — standard dark card with border
-- `FakeGlassCard` — purple-tinted hero card (no BackdropFilter)
-- `GradientButton` — purple gradient button with press animation
+- `AppCard` — standard light blue card with border
+- `FakeGlassCard` — blue-tinted hero card
+- `GradientButton` — deep blue to purple gradient button with press animation
 - `SectionHeader` — left accent bar + uppercase label
 - `DifficultyChip` — color-coded Easy/Medium/Hard
 - `StatusChip` — color-coded company application status
@@ -141,7 +141,7 @@ Search any company and get:
 ### Custom Loading
 
 - `LagjaLoader` — branded pulsing logo animation replaces all CircularProgressIndicators
-- Login screen: purple ring animates around logo during Google Sign In
+- Login screen: deep blue ring animates around logo during Google Sign In
 
 -----
 

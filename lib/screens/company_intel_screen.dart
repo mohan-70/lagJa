@@ -120,7 +120,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
             padding: EdgeInsets.zero,
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: "e.g. Google, TCS, Wipro, Startup",
                 prefixIcon: Icon(Icons.search, color: AppColors.accent),
@@ -157,7 +157,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
                         child: Text(
                           company,
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w600),
                         ),
@@ -178,7 +178,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => setState(() => _intelResult = null),
         ),
         title: Text(_searchController.text.toUpperCase()),
@@ -229,7 +229,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
         children: [
           Text(_searchController.text.toUpperCase(),
               style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -330,7 +330,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
         children: [
           const Text("Interview Rounds",
               style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
@@ -350,7 +350,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
                     Expanded(
                         child: Text(e.value,
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 14))),
+                                color: AppColors.textPrimary, fontSize: 14))),
                   ],
                 ),
               )),
@@ -367,7 +367,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
         children: [
           const Text("Key Skills",
               style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
@@ -384,7 +384,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
                           borderRadius: BorderRadius.circular(20)),
                       child: Text(s,
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 12)),
+                              color: AppColors.textPrimary, fontSize: 12)),
                     ))
                 .toList(),
           ),
@@ -401,7 +401,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
         children: [
           const Text("Tips to Get In",
               style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
@@ -435,7 +435,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
           Expanded(
               child: Text("Known For: ${intel['knownFor'] ?? 'N/A'}",
                   style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w500))),
         ],

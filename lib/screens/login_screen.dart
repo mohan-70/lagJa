@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
+        value: SystemUiOverlayStyle.dark,
         child: Stack(
           children: [
             // Middle layer: Radial Gradient circle
@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 116,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF6C63FF),
+                                color: AppColors.accent,
                               ),
                             ),
                           ClipRRect(

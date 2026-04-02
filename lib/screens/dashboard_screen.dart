@@ -37,7 +37,7 @@ class DashboardScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
               Text(
@@ -58,7 +58,7 @@ class DashboardScreen extends StatelessWidget {
                   indicatorColor: AppColors.accent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorWeight: 2,
-                  labelColor: Colors.white,
+                  labelColor: AppColors.textPrimary,
                   unselectedLabelColor: AppColors.textSecondary,
                   labelStyle:
                       TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -130,7 +130,7 @@ class DashboardScreen extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                          color: AppColors.textPrimary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -159,7 +159,7 @@ class DashboardScreen extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                          color: AppColors.textPrimary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -187,7 +187,7 @@ class DashboardScreen extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white),
+                          color: AppColors.textPrimary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -227,7 +227,7 @@ class DashboardScreen extends StatelessWidget {
                     Text(
                       '$streak Day Streak',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 36,
                         fontWeight: FontWeight.w700,
                       ),
@@ -273,7 +273,7 @@ class DashboardScreen extends StatelessWidget {
               fontSize: 10,
               margin: const EdgeInsets.all(2),
               weekTextColor: AppColors.textSecondary,
-              textColor: Colors.white,
+              textColor: AppColors.textPrimary,
               monthFontSize: 14,
               colorsets: {
                 1: AppColors.accent.withValues(alpha: 0.2),
@@ -325,7 +325,7 @@ class DashboardScreen extends StatelessWidget {
       title: Text(
         title,
         style: const TextStyle(
-          color: Colors.white,
+          color: AppColors.textPrimary,
           fontSize: 15,
           fontWeight: FontWeight.w500,
         ),

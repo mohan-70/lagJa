@@ -48,7 +48,7 @@ class _NotesScreenState extends State<NotesScreen> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
                   hintText: 'Search by company...',
                   prefixIcon: Icon(Icons.search, color: AppColors.accent),
@@ -117,7 +117,7 @@ class _NotesScreenState extends State<NotesScreen> {
                   child: Text(
                     n.companyName,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -173,7 +173,7 @@ class _NotesScreenState extends State<NotesScreen> {
           Text(
             'No notes yet',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
@@ -216,7 +216,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3F3F46),
+                   color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -224,7 +224,7 @@ class _NotesScreenState extends State<NotesScreen> {
             const SizedBox(height: 24),
             const Text('New Note',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 24),
@@ -284,7 +284,7 @@ class _NotesScreenState extends State<NotesScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3F3F46),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -293,7 +293,7 @@ class _NotesScreenState extends State<NotesScreen> {
               Text(
                 n.companyName,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
@@ -310,7 +310,7 @@ class _NotesScreenState extends State<NotesScreen> {
               Text(
                 n.content,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                   height: 1.6,
                 ),
