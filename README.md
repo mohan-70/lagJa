@@ -152,7 +152,8 @@ Search any company and get:
 |Framework|Flutter (latest stable)                  |
 |Auth     |Firebase Authentication (Google Sign-In) |
 |Database |Cloud Firestore (real-time StreamBuilder)|
-|AI       |Google Gemini 2.0 Flash API              |
+|AI       |OpenRouter (Gemini 2.0 Flash compatible) via http package |
+|Remote Config | Firebase Remote Config ^4.3.0              |
 |HTTP     |`http` package                           |
 |Heatmap  |`flutter_heatmap_calendar`               |
 |Utilities|`uuid`, `intl`, `url_launcher`           |
@@ -175,10 +176,13 @@ lib/
 │   └── group_member.dart
 ├── services/
 │   ├── auth_service.dart
-│   └── firestore_service.dart
+│   ├── firestore_service.dart
+│   ├── ai_service.dart
+│   └── remote_config_service.dart
 ├── screens/
 │   ├── login_screen.dart
-│   ├── dashboard_screen.dart        # Top tabs: Overview, Leaderboard, Intel, Settings
+│   ├── dashboard_screen.dart        # Top tabs (Overview, Leaderboard, Company Intel, Settings)
+│   ├── roadmap_screen.dart          # Phase 1 roadmap + Phase 2 TopicContentScreen
 │   ├── dsa_tracker_screen.dart
 │   ├── companies_screen.dart
 │   ├── notes_screen.dart
@@ -189,13 +193,17 @@ lib/
 └── widgets/
     ├── main_screen.dart             # Bottom nav shell
     ├── lagja_loader.dart            # Branded loading animation
-    └── ui/
+└── ui/
         ├── app_card.dart
         ├── fake_glass_card.dart
         ├── gradient_button.dart
+        ├── lagja_loader.dart
         ├── section_header.dart
         ├── difficulty_chip.dart
         └── status_chip.dart
+    └── theme/
+        ├── app_colors.dart
+        └── app_theme.dart
 ```
 
 -----
@@ -249,9 +257,8 @@ flutter pub get
 dart pub global activate flutterfire_cli
 flutterfire configure
 
-# 4. Add Gemini API key
-# Open lib/constants/api_constants.dart
-# Replace YOUR_API_KEY with your key from aistudio.google.com
+# 4. Add API keys to assets/.env
+# OPENROUTER_API_KEY=your_key_from_openrouter.ai
 
 # 5. Run
 flutter run
