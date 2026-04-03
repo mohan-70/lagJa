@@ -23,7 +23,7 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isLoading = true;
+  bool isLoading = true;
   String? _groupId;
   String? _groupName;
   String? _inviteCode;
@@ -56,9 +56,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               _groupId = groupId;
               _groupName = groupDoc.data()?['name'];
               _inviteCode = groupDoc.data()?['inviteCode'];
-              _isLoading = false;
               _leaderboardFuture = _fetchLeaderboardData(groupId);
             });
+            await _leaderboardFuture;
+            if (mounted) {
+              setState(() => isLoading = false);
+            }
             _syncUserStats(groupId);
             return;
           }
@@ -66,11 +69,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       }
       setState(() {
         _groupId = null;
-        _isLoading = false;
+        isLoading = false;
       });
     } catch (e) {
       _showSnackBar('Error checking group status: $e');
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
     }
   }
 
@@ -171,14 +174,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return widget.showAppBar
-          ? const Scaffold(
-              backgroundColor: AppColors.background,
-              body: LagjaLoader(),
-            )
-          : const LagjaLoader();
-    }
+    if (isLoading) return const Center(child: LagjaLoader());
 
     if (_groupId == null) {
       return _buildNoGroupState();
@@ -298,7 +294,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Future<void> _createGroup(String name) async {
     if (name.isEmpty) return;
     Navigator.pop(context);
-    setState(() => _isLoading = true);
+    setState(() => isLoading = true);
 
     try {
       final uid = _auth.currentUser?.uid;
@@ -343,13 +339,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _groupId = newGroupId;
         _groupName = name;
         _inviteCode = inviteCode;
-        _isLoading = false;
         _leaderboardFuture = _fetchLeaderboardData(newGroupId);
       });
+      await _leaderboardFuture;
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
       _syncUserStats(newGroupId);
     } catch (e) {
       _showSnackBar('Failed to create group: $e');
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
     }
   }
 
@@ -409,7 +408,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Future<void> _joinGroup(String code) async {
     if (code.length != 6) return;
     Navigator.pop(context);
-    setState(() => _isLoading = true);
+    setState(() => isLoading = true);
 
     try {
       final groupsQuery = await _firestore
@@ -420,7 +419,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
       if (groupsQuery.docs.isEmpty) {
         _showSnackBar('Invalid code. Check with your friend.');
-        setState(() => _isLoading = false);
+        setState(() => isLoading = false);
         return;
       }
 
@@ -457,14 +456,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _groupId = groupId;
         _groupName = groupDoc.data()['name'];
         _inviteCode = groupDoc.data()['inviteCode'];
-        _isLoading = false;
         _leaderboardFuture = _fetchLeaderboardData(groupId);
       });
+      await _leaderboardFuture;
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
       _showSnackBar('Joined group successfully! 🎉');
       _syncUserStats(groupId);
     } catch (e) {
       _showSnackBar('Failed to join group: $e');
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
     }
   }
 
@@ -499,7 +501,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       future: _leaderboardFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const LagjaLoader();
+          return const SizedBox.shrink();
         }
 
         final members = snapshot.data!.docs
@@ -773,7 +775,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Future<void> _leaveGroup() async {
-    setState(() => _isLoading = true);
+    setState(() => isLoading = true);
     try {
       final uid = _auth.currentUser?.uid;
       final groupId = _groupId;
@@ -797,12 +799,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _groupId = null;
         _groupName = null;
         _inviteCode = null;
-        _isLoading = false;
+        isLoading = false;
       });
       _showSnackBar('Left group');
     } catch (e) {
       _showSnackBar('Error leaving group: $e');
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
     }
   }
 }

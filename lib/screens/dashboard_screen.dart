@@ -13,14 +13,25 @@ import 'leaderboard_screen.dart';
 import 'company_intel_screen.dart';
 import 'settings_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final AuthService authService = AuthService();
-    final FirestoreService firestoreService = FirestoreService();
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
 
+class _DashboardScreenState extends State<DashboardScreen> {
+  late final FirestoreService _firestoreService;
+  final AuthService authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _firestoreService = FirestoreService();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
@@ -80,7 +91,7 @@ class DashboardScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _buildOverviewTab(authService, firestoreService, context),
+            _buildOverviewTab(context),
             const LeaderboardScreen(showAppBar: false),
             const CompanyIntelScreen(),
             const SettingsScreen(),
@@ -90,18 +101,17 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOverviewTab(AuthService authService,
-      FirestoreService firestoreService, BuildContext context) {
+  Widget _buildOverviewTab(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStreakCard(firestoreService),
+          _buildStreakCard(),
           const SizedBox(height: 24),
-          _buildStatsCards(firestoreService),
+          _buildStatsCards(),
           const SectionHeader("ACTIVITY"),
-          _buildActivityHeatmap(firestoreService),
+          _buildActivityHeatmap(),
           const SectionHeader("QUICK ACTIONS"),
           _buildQuickActions(context),
           const SizedBox(height: 48),
@@ -110,12 +120,12 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsCards(FirestoreService firestoreService) {
+  Widget _buildStatsCards() {
     return StreamBuilder<Map<String, int>>(
-      stream: firestoreService.getStats(),
+      stream: _firestoreService.getStats(),
       builder: (context, snapshot) {
         final stats = snapshot.data ??
-            {'totalProblems': 0, 'solvedProblems': 0, 'companies': 0};
+            {'totalProblems': 0, 'solvedProblems': 0, 'companies': 0, 'notes': 0};
         return Row(
           children: [
             Expanded(
@@ -208,9 +218,9 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStreakCard(FirestoreService firestoreService) {
+  Widget _buildStreakCard() {
     return StreamBuilder<Map<String, int>>(
-      stream: firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
+      stream: _firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
       builder: (context, snapshot) {
         final activityData = snapshot.data ?? {};
         final streak = _calculateStreak(activityData);
@@ -253,11 +263,11 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActivityHeatmap(FirestoreService firestoreService) {
+  Widget _buildActivityHeatmap() {
     return AppCard(
       padding: const EdgeInsets.all(8),
       child: StreamBuilder<Map<String, int>>(
-        stream: firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
+        stream: _firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
         builder: (context, snapshot) {
           final activityData = snapshot.data ?? {};
           final convertedData = <DateTime, int>{};

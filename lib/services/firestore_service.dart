@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/dsa_problem.dart';
@@ -137,23 +138,47 @@ class FirestoreService {
   }
 
   // Stats
-  Stream<Map<String, int>> getStats() async* {
-    yield* Stream.periodic(const Duration(seconds: 1), (_) async {
-      final dsaSnapshot = await _dsaProblemsCollection.get();
-      final companiesSnapshot = await _companiesCollection.get();
-      final notesSnapshot = await _notesCollection.get();
-
-      final solvedProblems = await _dsaProblemsCollection
-          .where('isSolved', isEqualTo: true)
-          .get();
-
-      return {
-        'totalProblems': dsaSnapshot.docs.length,
-        'solvedProblems': solvedProblems.docs.length,
-        'companies': companiesSnapshot.docs.length,
-        'notes': notesSnapshot.docs.length,
-      };
-    }).asyncMap((future) => future).asBroadcastStream();
+  Stream<Map<String, int>> getStats() {
+    final controller = StreamController<Map<String, int>>.broadcast();
+    
+    StreamSubscription<int>? sub1, sub2, sub3, sub4;
+    int total = 0, solved = 0, companies = 0, notes = 0;
+    
+    void update() {
+      controller.add({
+        'totalProblems': total,
+        'solvedProblems': solved,
+        'companies': companies,
+        'notes': notes,
+      });
+    }
+    
+    sub1 = _dsaProblemsCollection.snapshots()
+        .map((s) => s.docs.length)
+        .listen((v) { total = v; update(); });
+    sub2 = _dsaProblemsCollection
+        .where('isSolved', isEqualTo: true)
+        .snapshots()
+        .map((s) => s.docs.length)
+        .listen((v) { solved = v; update(); });
+    sub3 = _companiesCollection.snapshots()
+        .map((s) => s.docs.length)
+        .listen((v) { companies = v; update(); });
+    sub4 = _notesCollection.snapshots()
+        .map((s) => s.docs.length)
+        .listen((v) { notes = v; update(); });
+    
+    controller.onCancel = () {
+      sub1?.cancel();
+      sub2?.cancel();
+      sub3?.cancel();
+      sub4?.cancel();
+    };
+    
+    // Initial emit
+    update();
+    
+    return controller.stream;
   }
   // Data Clearing Methods
   Future<void> clearDSAProblems() async {

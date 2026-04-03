@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/ai_service.dart';
+import '../services/remote_config_service.dart';
 import '../models/roadmap_problem.dart';
 import '../services/firestore_service.dart';
 import '../widgets/ui/app_card.dart';
@@ -101,33 +102,13 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
         '''You are a placement preparation expert for Indian BCA/BTech students. Create a complete placement preparation roadmap for a student targeting $company for $_selectedRole. They have $weeks and are at $level level. Return ONLY a JSON array with no markdown, no backticks, no explanation. Each item is a topic to study. Format: [{"weekNumber": 1, "topic": "Arrays", "category": "DSA", "priority": "High", "estimatedDays": 3, "description": "one line what to study", "type": "practice"}]. category must be one of: DSA, OOPs, Theory, System Design, HR, Project. type must be one of: practice, read, revise. priority must be: High, Medium, or Low. Generate 15-25 topics ordered by week and learning sequence.''';
 
     try {
-      final response = await http.post(
-        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${dotenv.env["GEMINI_API_KEY"] ?? ""}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {'text': prompt}
-              ]
-            }
-          ]
-        }),
-      );
+      final text = await AIService.generateContent(prompt: prompt);
 
-      if (response.statusCode != 200) {
-        throw Exception('API Error: ${response.statusCode}');
-      }
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final rawText =
-          data['candidates'][0]['content']['parts'][0]['text'] as String;
-
-      final int start = rawText.indexOf('[');
-      final int end = rawText.lastIndexOf(']');
+      final int start = text.indexOf('[');
+      final int end = text.lastIndexOf(']');
       if (start == -1 || end == -1) throw Exception('Invalid JSON format');
 
-      final String jsonStr = rawText.substring(start, end + 1);
+      final String jsonStr = text.substring(start, end + 1);
       final List<dynamic> jsonList = jsonDecode(jsonStr);
       final topics = jsonList
           .map((e) => _RoadmapTopic.fromMap(e as Map<String, dynamic>))
@@ -545,21 +526,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
     }
 
     try {
-      final response = await http.post(Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${dotenv.env["GEMINI_API_KEY"] ?? ""}'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'contents': [
-              {
-                'parts': [
-                  {'text': prompt}
-                ]
-              }
-            ]
-          }));
-      if (response.statusCode != 200) throw Exception('API Error');
-      final data = jsonDecode(response.body);
-      final rawText =
-          data['candidates'][0]['content']['parts'][0]['text'] as String;
+      final rawText = await AIService.generateContent(prompt: prompt);
       final int s = rawText.indexOf('[');
       final int e = rawText.lastIndexOf(']');
       if (s == -1 || e == -1) throw Exception('Invalid JSON');

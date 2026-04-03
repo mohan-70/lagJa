@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/ai_service.dart';
+import '../services/remote_config_service.dart';
 import '../widgets/ui/app_card.dart';
 import '../widgets/ui/fake_glass_card.dart';
 import '../widgets/ui/gradient_button.dart';
@@ -54,31 +55,12 @@ You are a placement expert for Indian students. Give a detailed company intel re
 """;
 
     try {
-      final response = await http.post(
-        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${dotenv.env["GEMINI_API_KEY"] ?? ""}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {'text': prompt}
-              ]
-            }
-          ]
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String text = data['candidates'][0]['content']['parts'][0]['text'];
-        text = text.replaceAll('```json', '').replaceAll('```', '').trim();
-        setState(() {
-          _intelResult = jsonDecode(text);
-          _isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to fetch data');
-      }
+      final text = await AIService.generateContent(prompt: prompt);
+      final cleanedText = text.replaceAll('```json', '').replaceAll('```', '').trim();
+      setState(() {
+        _intelResult = jsonDecode(cleanedText);
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

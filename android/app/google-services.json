@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "300248462787-k63kd4orciigpkv1tpkt6ucs616je1ue.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trumos.lagja",
+            "certificate_hash": "ecc32387eeaf71df2b37ca3b4e62446ae0afd3c9"
+          }
+        },
+        {
+          "client_id": "300248462787-rfsiaigcokksct6v9qn82omj5s5bhk0a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trumos.lagja",
+            "certificate_hash": "ff1f50754298c987123637c3e2cd9d7c239e38b7"
+          }
+        },
+        {
           "client_id": "300248462787-r42vvcgapl60knqq668ghbrt0vulc6ni.apps.googleusercontent.com",
           "client_type": 3
         }
