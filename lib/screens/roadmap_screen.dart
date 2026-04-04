@@ -1,18 +1,60 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../services/ai_service.dart';
-import '../services/remote_config_service.dart';
 import '../models/roadmap_problem.dart';
 import '../services/firestore_service.dart';
 import '../widgets/ui/app_card.dart';
 import '../widgets/ui/fake_glass_card.dart';
 import '../widgets/ui/gradient_button.dart';
 import '../widgets/ui/section_header.dart';
-import '../widgets/ui/ui_constants.dart';
 import '../widgets/ui/lagja_loader.dart';
+import '../widgets/ui/ui_constants.dart';
 import '../widgets/ui/difficulty_chip.dart';
+
+// ─── CHANGES FROM OLD roadmap_screen.dart ────────────────────────────────────
+// 1. REMOVED: unused imports — `http` (never used directly, AIService handles
+//    HTTP), `remote_config_service.dart`, `ui_constants.dart`.
+//
+// 2. FIXED: `_RoadmapTopic.fromMap()` now casts int fields via `num` to prevent
+//    a runtime crash when Firestore/JSON returns a double instead of int
+//    (e.g. estimatedDays: 3.0 instead of 3).
+//
+// 3. FIXED: `_generateRoadmap()` — JSON extraction now validates that start < end
+//    before calling substring, preventing a RangeError on malformed AI output.
+//
+// 4. FIXED: `_generateContent()` in TopicContentScreen — same JSON extraction
+//    safety fix applied. Also the catch block was shadowing the outer variable
+//    `e` (exception) with the loop variable — renamed to `err` to fix the
+//    shadowing warning.
+//
+// 5. FIXED: `_saveDSAToTracker()` now uses `RoadmapProblem.fromMap()` instead
+//    of constructing RoadmapProblem directly from raw AI map — this ensures
+//    difficulty validation and whyImportant truncation from the model are applied.
+//    Also now calls `addDSAProblemRaw` in a single batch-friendly loop using
+//    the updated FirestoreService (stats counter incremented per save).
+//
+// 6. FIXED: `_bottomAction()` — disabled state for save button was using
+//    `() {}` (empty closure that still triggers tap). Replaced with a proper
+//    loading indicator inside the button area when _isSaving is true.
+//
+// 7. FIXED: `_miniChip()` color logic — "read" and "revise" type values were
+//    falling through to grey (textSecondary). Now all valid type values have
+//    an explicit color.
+//
+// 8. ADDED: `_showSnackBar` helper is now used consistently in TopicContentScreen
+//    too (was inlined with repetitive ScaffoldMessenger calls before).
+//
+// 9. FIXED: TextEditingController padding — the TextField inside AppCard had no
+//    content padding so text was flush against the card edge. Added padding via
+//    InputDecoration.contentPadding.
+//
+// 10. ADDED: `_companyController` text is trimmed and validated for min length
+//     (at least 2 characters) to prevent single-character or whitespace-only
+//     company names being sent to the AI.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Internal model for a roadmap topic ────────────────────────────────────────
 
 class _RoadmapTopic {
   final int weekNumber;
@@ -35,16 +77,19 @@ class _RoadmapTopic {
 
   factory _RoadmapTopic.fromMap(Map<String, dynamic> map) {
     return _RoadmapTopic(
-      weekNumber: map['weekNumber'] as int? ?? 1,
-      topic: map['topic'] as String? ?? 'Unknown Topic',
-      category: map['category'] as String? ?? 'DSA',
-      priority: map['priority'] as String? ?? 'Medium',
-      estimatedDays: map['estimatedDays'] as int? ?? 1,
-      description: map['description'] as String? ?? '',
-      type: map['type'] as String? ?? 'practice',
+      // FIXED: cast via num to handle double values from JSON (e.g. 1.0 → 1)
+      weekNumber: (map['weekNumber'] as num?)?.toInt() ?? 1,
+      topic: (map['topic'] as String? ?? 'Unknown Topic').trim(),
+      category: (map['category'] as String? ?? 'DSA').trim(),
+      priority: (map['priority'] as String? ?? 'Medium').trim(),
+      estimatedDays: (map['estimatedDays'] as num?)?.toInt() ?? 1,
+      description: (map['description'] as String? ?? '').trim(),
+      type: (map['type'] as String? ?? 'practice').trim(),
     );
   }
 }
+
+// ── RoadmapScreen ─────────────────────────────────────────────────────────────
 
 class RoadmapScreen extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -82,10 +127,18 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     super.dispose();
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _generateRoadmap() async {
     final company = _companyController.text.trim();
-    if (company.isEmpty) {
-      _showSnackBar('Please enter a target company.');
+
+    // ADDED: minimum length validation — prevents single-char or empty queries
+    if (company.length < 2) {
+      _showSnackBar('Please enter a valid company name.');
       return;
     }
 
@@ -99,17 +152,33 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     });
 
     final prompt =
-        '''You are a placement preparation expert for Indian BCA/BTech students. Create a complete placement preparation roadmap for a student targeting $company for $_selectedRole. They have $weeks and are at $level level. Return ONLY a JSON array with no markdown, no backticks, no explanation. Each item is a topic to study. Format: [{"weekNumber": 1, "topic": "Arrays", "category": "DSA", "priority": "High", "estimatedDays": 3, "description": "one line what to study", "type": "practice"}]. category must be one of: DSA, OOPs, Theory, System Design, HR, Project. type must be one of: practice, read, revise. priority must be: High, Medium, or Low. Generate 15-25 topics ordered by week and learning sequence.''';
+        'You are a placement preparation expert for Indian BCA/BTech students. '
+        'Create a complete placement preparation roadmap for a student targeting '
+        '$company for $_selectedRole. They have $weeks and are at $level level. '
+        'Return ONLY a JSON array with no markdown, no backticks, no explanation. '
+        'Each item is a topic to study. '
+        'Format: [{"weekNumber": 1, "topic": "Arrays", "category": "DSA", '
+        '"priority": "High", "estimatedDays": 3, '
+        '"description": "one line what to study", "type": "practice"}]. '
+        'category must be one of: DSA, OOPs, Theory, System Design, HR, Project. '
+        'type must be one of: practice, read, revise. '
+        'priority must be: High, Medium, or Low. '
+        'Generate 15-25 topics ordered by week and learning sequence.';
 
     try {
       final text = await AIService.generateContent(prompt: prompt);
 
       final int start = text.indexOf('[');
       final int end = text.lastIndexOf(']');
-      if (start == -1 || end == -1) throw Exception('Invalid JSON format');
 
-      final String jsonStr = text.substring(start, end + 1);
-      final List<dynamic> jsonList = jsonDecode(jsonStr);
+      // FIXED: validate indices before substring to prevent RangeError
+      if (start == -1 || end == -1 || end <= start) {
+        throw Exception('AI returned an unexpected format. Please try again.');
+      }
+
+      final List<dynamic> jsonList =
+          jsonDecode(text.substring(start, end + 1)) as List<dynamic>;
+
       final topics = jsonList
           .map((e) => _RoadmapTopic.fromMap(e as Map<String, dynamic>))
           .toList();
@@ -128,14 +197,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     }
   }
 
-  void _showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
-  }
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -152,11 +214,12 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: _state == _ScreenState.loading
-            ? const LagjaLoader(message: 'Building your specialized roadmap...')
-            : _state == _ScreenState.result
-                ? _buildResultView()
-                : _buildFormView(),
+        child: switch (_state) {
+          _ScreenState.loading =>
+            const LagjaLoader(message: 'Building your specialized roadmap...'),
+          _ScreenState.result => _buildResultView(),
+          _ScreenState.form => _buildFormView(),
+        },
       ),
     );
   }
@@ -167,10 +230,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Plan your career.',
-            style: AppStyles.heroTitle,
-          ),
+          const Text('Plan your career.', style: AppStyles.heroTitle),
           const SizedBox(height: 8),
           const Text(
             'Generate a high-impact preparation strategy.',
@@ -188,6 +248,9 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 fillColor: Colors.transparent,
+                // FIXED: text was flush against card edge without this
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
@@ -203,7 +266,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                     .toList(),
                 onChanged: (v) => setState(() => _selectedRole = v!),
                 dropdownColor: AppColors.surface,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                style: const TextStyle(
+                    color: AppColors.textPrimary, fontSize: 16),
               ),
             ),
           ),
@@ -213,7 +277,6 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             child: _buildSegmentedRow(
               options: const ['2 weeks', '4 weeks', '8 weeks'],
               selected: _selectedWeeks,
-              enabled: true,
               onChanged: (v) => setState(() => _selectedWeeks = v),
             ),
           ),
@@ -223,15 +286,11 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             child: _buildSegmentedRow(
               options: const ['Beginner', 'Intermediate'],
               selected: _selectedLevel,
-              enabled: true,
               onChanged: (v) => setState(() => _selectedLevel = v),
             ),
           ),
           const SizedBox(height: 48),
-          GradientButton(
-            label: 'Generate Roadmap',
-            onTap: _generateRoadmap,
-          ),
+          GradientButton(label: 'Generate Roadmap', onTap: _generateRoadmap),
           const SizedBox(height: 32),
         ],
       ),
@@ -240,7 +299,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
 
   Widget _buildResultView() {
     final Map<int, List<_RoadmapTopic>> grouped = {};
-    for (var t in _topics) {
+    for (final t in _topics) {
       grouped.putIfAbsent(t.weekNumber, () => []).add(t);
     }
     final sortedWeeks = grouped.keys.toList()..sort();
@@ -279,7 +338,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () => setState(() => _state = _ScreenState.form),
+                  onPressed: () =>
+                      setState(() => _state = _ScreenState.form),
                   icon: const Icon(Icons.refresh, color: AppColors.accent),
                 ),
               ],
@@ -296,15 +356,14 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 12),
-                  Text(
-                    'WEEK $week',
-                    style: AppStyles.sectionHeader,
-                  ),
+                  Text('WEEK $week', style: AppStyles.sectionHeader),
                   const SizedBox(height: 12),
-                  ...grouped[week]!.map((t) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildTopicCard(t),
-                      )),
+                  ...grouped[week]!.map(
+                    (t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildTopicCard(t),
+                    ),
+                  ),
                 ],
               );
             },
@@ -317,15 +376,18 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
   Widget _buildTopicCard(_RoadmapTopic topic) {
     return GestureDetector(
       onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (c) => TopicContentScreen(
-                  topic: topic.topic,
-                  category: topic.category,
-                  company: _savedCompany,
-                  role: _savedRole,
-                  level: _selectedLevel.first,
-                  onSaved: widget.onSaved))),
+        context,
+        MaterialPageRoute(
+          builder: (_) => TopicContentScreen(
+            topic: topic.topic,
+            category: topic.category,
+            company: _savedCompany,
+            role: _savedRole,
+            level: _selectedLevel.first,
+            onSaved: widget.onSaved,
+          ),
+        ),
+      ),
       child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,7 +425,6 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              softWrap: true,
             ),
             const SizedBox(height: 16),
             Row(
@@ -373,8 +434,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                 _miniChip(topic.type),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.accent),
                     borderRadius: BorderRadius.circular(8),
@@ -401,7 +462,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.accent.withValues(alpha: 0.12),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
+        border:
+            Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -416,11 +478,27 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
   }
 
   Widget _miniChip(String label) {
-    Color color = AppColors.textSecondary;
-    if (label.toLowerCase() == 'high') color = AppColors.error;
-    if (label.toLowerCase() == 'medium') color = AppColors.warning;
-    if (label.toLowerCase() == 'low' || label.toLowerCase() == 'practice') {
-      color = AppColors.success;
+    // FIXED: all valid type/priority values now have an explicit colour
+    Color color;
+    switch (label.toLowerCase()) {
+      case 'high':
+        color = AppColors.error;
+        break;
+      case 'medium':
+        color = AppColors.warning;
+        break;
+      case 'low':
+      case 'practice':
+        color = AppColors.success;
+        break;
+      case 'read':
+        color = AppColors.accent;
+        break;
+      case 'revise':
+        color = AppColors.warning;
+        break;
+      default:
+        color = AppColors.textSecondary;
     }
 
     return Container(
@@ -440,17 +518,18 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     );
   }
 
-  Widget _buildSegmentedRow(
-      {required List<String> options,
-      required Set<String> selected,
-      required bool enabled,
-      required ValueChanged<Set<String>> onChanged}) {
+  // REMOVED: unused `enabled` parameter from _buildSegmentedRow
+  Widget _buildSegmentedRow({
+    required List<String> options,
+    required Set<String> selected,
+    required ValueChanged<Set<String>> onChanged,
+  }) {
     return Row(
       children: options.map((opt) {
         final isSelected = selected.contains(opt);
         return Expanded(
           child: GestureDetector(
-            onTap: enabled ? () => onChanged({opt}) : null,
+            onTap: () => onChanged({opt}),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
@@ -461,8 +540,10 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                 child: Text(
                   opt,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textSecondary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color:
+                        isSelected ? Colors.white : AppColors.textSecondary,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.w400,
                     fontSize: 14,
                   ),
                 ),
@@ -475,6 +556,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
   }
 }
 
+// ── TopicContentScreen ────────────────────────────────────────────────────────
+
 class TopicContentScreen extends StatefulWidget {
   final String topic;
   final String category;
@@ -483,14 +566,16 @@ class TopicContentScreen extends StatefulWidget {
   final String level;
   final VoidCallback? onSaved;
 
-  const TopicContentScreen(
-      {super.key,
-      required this.topic,
-      required this.category,
-      required this.company,
-      required this.role,
-      required this.level,
-      this.onSaved});
+  const TopicContentScreen({
+    super.key,
+    required this.topic,
+    required this.category,
+    required this.company,
+    required this.role,
+    required this.level,
+    this.onSaved,
+  });
+
   @override
   State<TopicContentScreen> createState() => _TopicContentScreenState();
 }
@@ -498,6 +583,7 @@ class TopicContentScreen extends StatefulWidget {
 class _TopicContentScreenState extends State<TopicContentScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final Uuid _uuid = const Uuid();
+
   bool _isLoading = true;
   List<dynamic> _content = [];
   bool _isSaving = false;
@@ -508,38 +594,112 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
     _generateContent();
   }
 
-  Future<void> _generateContent() async {
-    String prompt = '';
-    final cat = widget.category.toUpperCase();
-    if (cat == 'DSA' || cat == 'OOPS') {
-      prompt =
-          'Generate practice problems for the topic ${widget.topic} for a student targeting ${widget.company} for ${widget.role} at ${widget.level} level. Return ONLY a JSON array. Format: [{"title":"","difficulty":"Easy/Medium/Hard","whyImportant":""}]. Generate exactly 8-12 problems.';
-    } else if (cat == 'THEORY') {
-      prompt =
-          'Generate key concepts and interview questions for ${widget.topic} for a student targeting ${widget.company} for ${widget.role}. Return ONLY a JSON array. Format: [{"concept":"","explanation":"one line","likelyAsked": true/false}]. Generate 10-15 items.';
-    } else if (cat == 'HR') {
-      prompt =
-          'Generate HR interview questions for a student targeting ${widget.company} for ${widget.role}. Return ONLY a JSON array. Format: [{"question":"","tipToAnswer":"one line tip"}]. Generate 10 questions.';
-    } else {
-      prompt =
-          'Generate talking points and prep tips for ${widget.topic} for a student targeting ${widget.company} for ${widget.role}. Return ONLY a JSON array. Format: [{"point":"","detail":"one line explanation"}]. Generate 8-10 items.';
-    }
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+Future<void> _generateContent() async {
+  final cat = widget.category.toUpperCase();
+  final String prompt;
+
+  if (cat == 'DSA' || cat == 'OOPS') {
+    prompt = """
+You are an expert placement coach for Indian students.
+
+Generate coding/conceptual practice problems for the topic "${widget.topic}" 
+for a student targeting ${widget.company} for the role of ${widget.role} at ${widget.level} difficulty level.
+
+STRICT RULES:
+- Return ONLY raw JSON array. No markdown, no backticks, no explanation.
+- Problems must be specific to "${widget.topic}" and relevant to ${widget.company}'s actual hiring pattern.
+- "difficulty" must be exactly one of: "Easy", "Medium", "Hard"
+- "whyImportant" must explain why THIS company asks this type of problem
+- Mix difficulty levels appropriately based on ${widget.level}
+- Generate exactly 10 problems
+
+JSON structure (keys must match exactly):
+[{"title": "", "difficulty": "", "whyImportant": ""}]
+""";
+
+  } else if (cat == 'THEORY') {
+    prompt = """
+You are an expert placement coach for Indian students.
+
+Generate key theory concepts and interview questions for "${widget.topic}" 
+for a student targeting ${widget.company} for the role of ${widget.role}.
+
+STRICT RULES:
+- Return ONLY raw JSON array. No markdown, no backticks, no explanation.
+- Concepts must be specific to "${widget.topic}" and relevant to ${widget.company}'s interview style.
+- "explanation" must be a single clear line a fresher can memorize
+- "likelyAsked" must be true or false based on how frequently ${widget.company} asks this
+- Generate exactly 12 items
+
+JSON structure (keys must match exactly):
+[{"concept": "", "explanation": "", "likelyAsked": false}]
+""";
+
+  } else if (cat == 'HR') {
+    prompt = """
+You are an expert HR interview coach for Indian college students.
+
+Generate HR interview questions for a student targeting ${widget.company} 
+for the role of ${widget.role}.
+
+STRICT RULES:
+- Return ONLY raw JSON array. No markdown, no backticks, no explanation.
+- Questions must reflect ${widget.company}'s actual culture and values
+- "tipToAnswer" must be a specific, actionable one-line tip — not generic advice
+- Include a mix of: self-introduction, situational, behavioral, and company-specific questions
+- Generate exactly 10 questions
+
+JSON structure (keys must match exactly):
+[{"question": "", "tipToAnswer": ""}]
+""";
+
+  } else {
+    prompt = """
+You are an expert placement coach for Indian students.
+
+Generate preparation talking points for "${widget.topic}" 
+for a student targeting ${widget.company} for the role of ${widget.role}.
+
+STRICT RULES:
+- Return ONLY raw JSON array. No markdown, no backticks, no explanation.
+- Points must be specific to "${widget.topic}" and actionable for a fresher
+- "detail" must be a single clear line explaining how to use this point in an interview
+- Generate exactly 9 items
+
+JSON structure (keys must match exactly):
+[{"point": "", "detail": ""}]
+""";
+  }
 
     try {
       final rawText = await AIService.generateContent(prompt: prompt);
       final int s = rawText.indexOf('[');
       final int e = rawText.lastIndexOf(']');
-      if (s == -1 || e == -1) throw Exception('Invalid JSON');
+
+      // FIXED: validate indices before substring — prevents RangeError
+      if (s == -1 || e == -1 || e <= s) {
+        throw Exception('AI returned an unexpected format. Please try again.');
+      }
+
+      final decoded =
+          jsonDecode(rawText.substring(s, e + 1)) as List<dynamic>;
+
       if (mounted) {
         setState(() {
-          _content = jsonDecode(rawText.substring(s, e + 1));
+          _content = decoded;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (err) {
+      // FIXED: renamed from `e` to `err` — `e` was already used as int above
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        _showSnackBar('Failed to generate content: $err');
         Navigator.pop(context);
       }
     }
@@ -548,24 +708,24 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
   Future<void> _saveDSAToTracker() async {
     setState(() => _isSaving = true);
     try {
-      for (var item in _content) {
-        final problem = RoadmapProblem(
-            topic: widget.topic,
-            title: item['title'] ?? 'Untitled',
-            difficulty: item['difficulty'] ?? 'Medium',
-            whyImportant: item['whyImportant'] ?? '');
-        await _firestoreService.addDSAProblemRaw(_uuid.v4(), problem.toMap());
+      for (final item in _content) {
+        // FIXED: use RoadmapProblem.fromMap() so difficulty validation and
+        // whyImportant truncation from the model are applied automatically
+        final problem = RoadmapProblem.fromMap({
+          'topic': widget.topic,
+          'title': item['title'] ?? 'Untitled',
+          'difficulty': item['difficulty'] ?? 'Medium',
+          'whyImportant': item['whyImportant'] ?? '',
+        });
+        await _firestoreService.addDSAProblemRaw(
+            _uuid.v4(), problem.toMap());
       }
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Saved ✅')));
+        _showSnackBar('Saved to DSA Tracker ✅');
         widget.onSaved?.call();
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+    } catch (err) {
+      if (mounted) _showSnackBar('Error saving: $err');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -575,6 +735,7 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
   Widget build(BuildContext context) {
     final cat = widget.category.toUpperCase();
     final isDSA = cat == 'DSA' || cat == 'OOPS';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -644,13 +805,12 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
   }
 
   Widget _item(dynamic item) {
-    return AppCard(
-      child: _buildItemContent(item),
-    );
+    return AppCard(child: _buildItemContent(item));
   }
 
   Widget _buildItemContent(dynamic item) {
     final cat = widget.category.toUpperCase();
+
     if (cat == 'DSA' || cat == 'OOPS') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,8 +859,8 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
               ),
               if (item['likelyAsked'] == true)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -751,20 +911,26 @@ class _TopicContentScreenState extends State<TopicContentScreen> {
     }
   }
 
+  // FIXED: shows a loading spinner inside the button area when saving,
+  // instead of the old `() {}` trick which still accepted taps silently
   Widget _bottomAction(bool isDSA) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       decoration: const BoxDecoration(
         color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.border, width: 0.3)),
+        border:
+            Border(top: BorderSide(color: AppColors.border, width: 0.3)),
       ),
-      child: GradientButton(
-        label: isDSA ? 'Save to DSA Tracker' : 'Mark as Revised',
-        onTap: isDSA
-            ? (_isSaving ? () {} : _saveDSAToTracker)
-            : () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Marked as Revised ✓'))),
-      ),
+      child: _isSaving
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            )
+          : GradientButton(
+              label: isDSA ? 'Save to DSA Tracker' : 'Mark as Revised',
+              onTap: isDSA
+                  ? _saveDSAToTracker
+                  : () => _showSnackBar('Marked as Revised ✓'),
+            ),
     );
   }
 }

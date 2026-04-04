@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../services/ai_service.dart';
-import '../services/remote_config_service.dart';
 import '../widgets/ui/app_card.dart';
 import '../widgets/ui/fake_glass_card.dart';
 import '../widgets/ui/gradient_button.dart';
@@ -31,6 +29,14 @@ class _CompanyIntelScreenState extends State<CompanyIntelScreen> {
     "Startup"
   ];
 
+  // ✅ Fix: safe double parse for rating
+  double _safeDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is double) return val;
+    if (val is int) return val.toDouble();
+    return double.tryParse(val.toString()) ?? 0.0;
+  }
+
   Future<void> _fetchIntel(String companyName) async {
     if (companyName.isEmpty) return;
 
@@ -39,39 +45,72 @@ class _CompanyIntelScreenState extends State<CompanyIntelScreen> {
       _intelResult = null;
     });
 
-    final prompt = """
-You are a placement expert for Indian students. Give a detailed company intel report for $companyName for freshers and interns in India. Return ONLY a JSON object with no markdown, no backticks. Format: {
-  'overview': 'one line company description',
-  'fresherCTC': '₹3.5 - 7 LPA',
-  'internStipend': '₹10,000 - 20,000/month',
-  'hiringDifficulty': 'Easy/Medium/Hard',
-  'selectionRate': '~15-20%',
-  'interviewRounds': ['Round 1: Aptitude', 'Round 2: Technical', 'Round 3: HR'],
-  'keySkills': ['Java', 'Python', 'DBMS'],
-  'knownFor': 'Mass hiring, good work-life balance',
-  'tipsToGetIn': ['Tip 1', 'Tip 2', 'Tip 3'],
-  'rating': 3.8
+   final prompt = """
+You are a placement intelligence system for Indian college students (BCA/BTech freshers).
+
+Analyze the company "$companyName" and return a JSON object with EXACTLY this structure.
+
+STRICT RULES:
+- Return ONLY raw JSON. No markdown, no backticks, no explanation, no extra text.
+- All values must be specific to "$companyName" based on real-world data.
+- "hiringDifficulty" must be exactly one of: "Easy", "Medium", "Hard"
+- "rating" must be a number between 1.0 and 5.0 based on employee reviews and fresher experience
+- "interviewRounds" must have 3-5 items describing actual rounds used by this company
+- "keySkills" must have 4-6 items most relevant to this company's hiring
+- "tipsToGetIn" must have exactly 3 actionable, company-specific tips
+- "selectionRate" should reflect actual difficulty of getting hired at this company
+- If company is a generic startup or unknown, give realistic estimated values based on similar Indian startups
+
+JSON structure (keys must match exactly):
+{
+  "overview": "",
+  "fresherCTC": "",
+  "internStipend": "",
+  "hiringDifficulty": "",
+  "selectionRate": "",
+  "interviewRounds": [],
+  "keySkills": [],
+  "knownFor": "",
+  "tipsToGetIn": [],
+  "rating": 0.0
 }
 """;
 
     try {
       final text = await AIService.generateContent(prompt: prompt);
-      final cleanedText = text.replaceAll('```json', '').replaceAll('```', '').trim();
-      setState(() {
-        _intelResult = jsonDecode(cleanedText);
-        _isLoading = false;
-      });
+      final cleanedText =
+          text.replaceAll('```json', '').replaceAll('```', '').trim();
+
+      // ✅ Fix: safe JSON parse with clear error
+      Map<String, dynamic> parsed;
+      try {
+        parsed = jsonDecode(cleanedText);
+      } catch (_) {
+        throw Exception('AI returned invalid response. Please try again.');
+      }
+
+      if (mounted) {
+        setState(() => _intelResult = parsed);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: AppColors.error,
           ),
         );
       }
-      setState(() => _isLoading = false);
+    } finally {
+      // ✅ Fix: single place for loading = false
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose(); // ✅ Fix: controller dispose
+    super.dispose();
   }
 
   @override
@@ -79,75 +118,86 @@ You are a placement expert for Indian students. Give a detailed company intel re
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: LagjaLoader(message: "Gathering intel for ${_searchController.text}..."),
+        body: LagjaLoader(
+            message:
+                "Gathering intel for ${_searchController.text}..."),
       );
     }
     if (_intelResult != null) return _buildResultState();
     return _buildSearchState();
   }
 
+  // ✅ Fix: wrapped in Scaffold for consistency
   Widget _buildSearchState() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Company Intel 🔍", style: AppStyles.heroTitle),
-          const SizedBox(height: 8),
-          const Text(
-              "Get salary, hiring process, and insider info for any company",
-              style: AppStyles.body),
-          const SizedBox(height: 32),
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                hintText: "e.g. Google, TCS, Wipro, Startup",
-                prefixIcon: Icon(Icons.search, color: AppColors.accent),
-                fillColor: Colors.transparent,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Company Intel 🔍", style: AppStyles.heroTitle),
+            const SizedBox(height: 8),
+            const Text(
+                "Get salary, hiring process, and insider info for any company",
+                style: AppStyles.body),
+            const SizedBox(height: 32),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: TextField(
+                controller: _searchController,
+                style:
+                    const TextStyle(color: AppColors.textPrimary),
+                decoration: const InputDecoration(
+                  hintText: "e.g. Google, TCS, Wipro, Startup",
+                  prefixIcon:
+                      Icon(Icons.search, color: AppColors.accent),
+                  fillColor: Colors.transparent,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                onSubmitted: (val) => _fetchIntel(val.trim()), // ✅ keyboard submit support
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          GradientButton(
-            label: "Get Intel Report",
-            onTap: () => _fetchIntel(_searchController.text.trim()),
-          ),
-          const SectionHeader("QUICK SEARCH"),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _quickSearches
-                .map((company) => GestureDetector(
-                      onTap: () {
-                        _searchController.text = company;
-                        _fetchIntel(company);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          border: Border.all(color: AppColors.border),
-                          borderRadius: BorderRadius.circular(20),
+            const SizedBox(height: 16),
+            GradientButton(
+              label: "Get Intel Report",
+              onTap: () =>
+                  _fetchIntel(_searchController.text.trim()),
+            ),
+            const SectionHeader("QUICK SEARCH"),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _quickSearches
+                  .map((company) => GestureDetector(
+                        onTap: () {
+                          _searchController.text = company;
+                          _fetchIntel(company);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            border:
+                                Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            company,
+                            style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600),
+                          ),
                         ),
-                        child: Text(
-                          company,
-                          style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-        ],
+                      ))
+                  .toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -160,7 +210,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back,
+              color: AppColors.textPrimary),
           onPressed: () => setState(() => _intelResult = null),
         ),
         title: Text(_searchController.text.toUpperCase()),
@@ -194,7 +245,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
               }),
               child: const Text("Search Another Company",
                   style: TextStyle(
-                      color: AppColors.accent, fontWeight: FontWeight.bold)),
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 48),
           ],
@@ -204,7 +256,7 @@ You are a placement expert for Indian students. Give a detailed company intel re
   }
 
   Widget _buildHeaderCard(Map<String, dynamic> intel) {
-    double rating = (intel['rating'] ?? 0).toDouble();
+    final double rating = _safeDouble(intel['rating']); // ✅ safe parse
     return FakeGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,12 +272,15 @@ You are a placement expert for Indian students. Give a detailed company intel re
           Row(
             children: List.generate(5, (index) {
               if (index < rating.floor()) {
-                return const Icon(Icons.star, color: Colors.amber, size: 20);
+                return const Icon(Icons.star,
+                    color: Colors.amber, size: 20);
               }
               if (index < rating) {
-                return const Icon(Icons.star_half, color: Colors.amber, size: 20);
+                return const Icon(Icons.star_half,
+                    color: Colors.amber, size: 20);
               }
-              return const Icon(Icons.star_border, color: Colors.amber, size: 20);
+              return const Icon(Icons.star_border,
+                  color: Colors.amber, size: 20);
             }),
           ),
         ],
@@ -253,8 +308,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
     return Column(
       children: [
         Text(label,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 12)),
         const SizedBox(height: 4),
         Text(value,
             style: const TextStyle(
@@ -276,8 +331,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildStatItem(diff, diffColor, "Difficulty"),
-          _buildStatItem(intel['selectionRate'] ?? 'N/A', AppColors.accent,
-              "Selection Rate"),
+          _buildStatItem(intel['selectionRate'] ?? 'N/A',
+              AppColors.accent, "Selection Rate"),
           _buildStatItem("Yes", Colors.blue, "Campus Hiring"),
         ],
       ),
@@ -288,18 +343,21 @@ You are a placement expert for Indian students. Give a detailed company intel re
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
               color: col.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8)),
           child: Text(val,
               style: TextStyle(
-                  color: col, fontWeight: FontWeight.bold, fontSize: 12)),
+                  color: col,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12)),
         ),
         const SizedBox(height: 8),
         Text(label,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 11)),
       ],
     );
   }
@@ -322,7 +380,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
                   children: [
                     CircleAvatar(
                         radius: 12,
-                        backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+                        backgroundColor:
+                            AppColors.accent.withValues(alpha: 0.2),
                         child: Text("${e.key + 1}",
                             style: const TextStyle(
                                 fontSize: 11,
@@ -332,7 +391,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
                     Expanded(
                         child: Text(e.value,
                             style: const TextStyle(
-                                color: AppColors.textPrimary, fontSize: 14))),
+                                color: AppColors.textPrimary,
+                                fontSize: 14))),
                   ],
                 ),
               )),
@@ -362,11 +422,13 @@ You are a placement expert for Indian students. Give a detailed company intel re
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                           color: AppColors.background,
-                          border: Border.all(color: AppColors.border),
+                          border:
+                              Border.all(color: AppColors.border),
                           borderRadius: BorderRadius.circular(20)),
                       child: Text(s,
                           style: const TextStyle(
-                              color: AppColors.textPrimary, fontSize: 12)),
+                              color: AppColors.textPrimary,
+                              fontSize: 12)),
                     ))
                 .toList(),
           ),
@@ -392,7 +454,8 @@ You are a placement expert for Indian students. Give a detailed company intel re
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("💡", style: TextStyle(fontSize: 14)),
+                    const Text("💡",
+                        style: TextStyle(fontSize: 14)),
                     const SizedBox(width: 12),
                     Expanded(
                         child: Text(tip,
