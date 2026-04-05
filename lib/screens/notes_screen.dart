@@ -1,3 +1,5 @@
+// NotesScreen: Manages interview experiences and preparation notes.
+// Users can log company-specific details and quickly search through their history.
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +8,7 @@ import '../services/firestore_service.dart';
 import '../widgets/ui/app_card.dart';
 import '../widgets/ui/ui_constants.dart';
 import '../widgets/ui/gradient_button.dart';
+import '../widgets/ui/shimmer_loader.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -14,6 +17,8 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+  // ─── State & Initialization ───
+
   final FirestoreService _firestoreService = FirestoreService();
   final Uuid _uuid = const Uuid();
   final TextEditingController _searchController = TextEditingController();
@@ -24,6 +29,8 @@ class _NotesScreenState extends State<NotesScreen> {
     _searchController.dispose();
     super.dispose();
   }
+
+  // ─── Build Method ───
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +48,7 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
       body: Column(
         children: [
+          // Search bar for filtering notes by company name
           Padding(
             padding: const EdgeInsets.all(16),
             child: AppCard(
@@ -62,16 +70,17 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
           Expanded(
             child: StreamBuilder<List<Note>>(
+              // Dynamically switching streams based on search query presence
               stream: _searchQuery.isEmpty
                   ? _firestoreService.getNotes()
                   : _firestoreService.searchNotes(_searchQuery),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(color: AppColors.accent));
+                  return const ShimmerList();
                 }
                 final notes = snapshot.data ?? [];
                 if (notes.isEmpty) return _buildEmptyState();
+                
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: notes.length,
@@ -100,12 +109,15 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  // ─── UI Helpers (Cards & Empty States) ───
+
+  /// Builds a card representing a single note, showing a snippet of the content
   Widget _buildNoteCard(Note n) {
     final bool isLong = n.content.length > 100;
 
     return GestureDetector(
       onLongPress: () => _showDeleteConfirmation(n),
-      onTap: () => _showNoteDetail(n),
+      onTap: () => _showNoteDetail(n), // Opens full-screen detail sheet
       child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,6 +147,7 @@ class _NotesScreenState extends State<NotesScreen> {
               ],
             ),
             const SizedBox(height: 8),
+            // Displaying a truncated snippet of the note content
             Text(
               n.content,
               style: const TextStyle(
@@ -163,6 +176,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  /// Placeholder UI when current search returns no results or collection is empty
   Widget _buildEmptyState() {
     return const Center(
       child: Column(
@@ -194,6 +208,9 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  // ─── Logic & Sheet Builders ───
+
+  /// Opens a simplified bottom sheet form to add a new note
   void _showAddNoteBottomSheet() {
     final companyC = TextEditingController();
     final contentC = TextEditingController();
@@ -261,6 +278,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  /// Displays the full content of a note in an expandable modal
   void _showNoteDetail(Note n) {
     showModalBottomSheet(
       context: context,
@@ -322,6 +340,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  /// Confirms deletion before calling Firestore removal
   void _showDeleteConfirmation(Note n) {
     showDialog(
       context: context,
@@ -346,3 +365,4 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 }
+

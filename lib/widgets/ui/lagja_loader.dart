@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ui_constants.dart';
+import 'shimmer_loader.dart';
 
 class LagjaLoader extends StatelessWidget {
   final String? message;
@@ -12,28 +13,10 @@ class LagjaLoader extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.accent.withValues(alpha: 0.3),
-                  ),
-                ),
-              ),
-              const SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
-                ),
-              ),
-            ],
+          const ShimmerContainer(
+            width: 100,
+            height: 100,
+            borderRadius: 50,
           ),
           if (message != null) ...[
             const SizedBox(height: 24),

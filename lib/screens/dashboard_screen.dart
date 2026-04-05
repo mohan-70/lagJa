@@ -6,13 +6,15 @@ import '../services/firestore_service.dart';
 import '../widgets/ui/app_card.dart';
 import '../widgets/ui/fake_glass_card.dart';
 import '../widgets/ui/section_header.dart';
-import '../widgets/ui/ui_constants.dart';
+import '../theme/app_colors.dart';
 import 'dsa_tracker_screen.dart';
 import 'companies_screen.dart';
 import 'leaderboard_screen.dart';
 import 'company_intel_screen.dart';
 import 'settings_screen.dart';
 
+// DashboardScreen: The main landing screen of the application.
+// Provides a high-level overview of streaks, stats, activity, and quick actions.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -20,106 +22,174 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
-  late final FirestoreService _firestoreService;
-  final AuthService authService = AuthService();
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
+  final AuthService _authService = AuthService();
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _firestoreService = FirestoreService();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          toolbarHeight: 80,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Lagja',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+        elevation: 0,
+        toolbarHeight: 80,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Lagja',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
-              Text(
-                'Hey ${authService.currentUserName?.split(' ').first ?? 'User'} 👋',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
+            ),
+            Text(
+              'Hey ${_authService.currentUserName?.split(' ').first ?? 'User'} 👋',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        centerTitle: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Column(
+            children: [
+              TabBar(
+                controller: _tabController,
+                indicatorColor: AppColors.accent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorWeight: 2,
+                labelColor: AppColors.textPrimary,
+                unselectedLabelColor: AppColors.textSecondary,
+                labelStyle:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                isScrollable: false,
+                tabs: const [
+                  Tab(text: "Overview"),
+                  Tab(text: "Leaderboard"),
+                  Tab(text: "Intel"),
+                  Tab(text: "Settings"),
+                ],
+              ),
+              Container(
+                height: 0.3,
+                color: AppColors.border,
               ),
             ],
           ),
-          centerTitle: false,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(50),
-            child: Column(
-              children: [
-                const TabBar(
-                  indicatorColor: AppColors.accent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorWeight: 2,
-                  labelColor: AppColors.textPrimary,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  labelStyle:
-                      TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  isScrollable: false,
-                  tabs: [
-                    Tab(text: "Overview"),
-                    Tab(text: "Leaderboard"),
-                    Tab(text: "Intel"),
-                    Tab(text: "Settings"),
-                  ],
-                ),
-                Container(
-                  height: 0.3,
-                  color: AppColors.border,
-                ),
-              ],
-            ),
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildOverviewTab(context),
-            const LeaderboardScreen(showAppBar: false),
-            const CompanyIntelScreen(),
-            const SettingsScreen(),
-          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildOverviewTab(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStreakCard(),
-          const SizedBox(height: 24),
-          _buildStatsCards(),
-          const SectionHeader("ACTIVITY"),
-          _buildActivityHeatmap(),
-          const SectionHeader("QUICK ACTIONS"),
-          _buildQuickActions(context),
-          const SizedBox(height: 48),
+      body: TabBarView(
+        controller: _tabController,
+        children: const [
+          _OverviewTab(),
+          LeaderboardScreen(showAppBar: false),
+          CompanyIntelScreen(),
+          SettingsScreen(),
         ],
       ),
     );
   }
+}
 
+/// Overview Tab: Extracted into its own StatefulWidget with AutomaticKeepAliveClientMixin 
+/// so the tab content (and its Firestore streams) survive tab switches.
+class _OverviewTab extends StatefulWidget {
+  const _OverviewTab();
+
+  @override
+  State<_OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends State<_OverviewTab>
+    with AutomaticKeepAliveClientMixin {
+  final FirestoreService _firestoreService = FirestoreService();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  /// Returns DateTime.now() with time stripped to midnight.
+  /// Used by streak calculation to avoid time-of-day edge cases.
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  /// Calculates the current streak from activity data.
+  /// Treats "solved today OR yesterday" as day-0 so the streak is not reset
+  /// just because the user hasn't opened the app yet this morning.
+  int _calculateStreak(Map<String, int> activityData) {
+    if (activityData.isEmpty) return 0;
+
+    final today = _today();
+    final sortedDates = activityData.keys.toList()
+      ..sort((a, b) => b.compareTo(a)); // descending
+
+    final mostRecent = DateFormat('yyyy-MM-dd').parse(sortedDates.first);
+    final gap = today.difference(mostRecent).inDays;
+    if (gap > 1) return 0; 
+
+    int streak = 0;
+    DateTime expected = gap == 0 ? today : today.subtract(const Duration(days: 1));
+
+    for (final dateStr in sortedDates) {
+      final date = DateFormat('yyyy-MM-dd').parse(dateStr);
+      if (date == expected) {
+        streak++;
+        expected = expected.subtract(const Duration(days: 1));
+      } else if (date.isBefore(expected)) {
+        break; 
+      }
+    }
+    return streak;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); 
+    return StreamBuilder<Map<String, int>>(
+      stream: _firestoreService.getActivityData(_today().subtract(const Duration(days: 180))),
+      builder: (context, snapshot) {
+        final activityData = snapshot.data ?? {};
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStreakCard(activityData),
+              const SizedBox(height: 24),
+              _buildStatsCards(),
+              const SectionHeader("ACTIVITY"),
+              _buildActivityHeatmap(activityData),
+              const SectionHeader("QUICK ACTIONS"),
+              _buildQuickActions(context),
+              const SizedBox(height: 48),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Displays high-level stats (solved problems, applications) using real-time data
   Widget _buildStatsCards() {
     return StreamBuilder<Map<String, int>>(
       stream: _firestoreService.getStats(),
@@ -141,15 +211,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const Text(
                       'SOLVED',
                       style: TextStyle(
                           fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -170,21 +236,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const Text(
                       'APPLIED',
                       style: TextStyle(
                           fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ),
             const SizedBox(width: 8),
+            // Total tasks/problems tracked
             Expanded(
               child: AppCard(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -198,15 +261,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const Text(
                       'TOTAL',
                       style: TextStyle(
                           fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -218,87 +277,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStreakCard() {
-    return StreamBuilder<Map<String, int>>(
-      stream: _firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
-      builder: (context, snapshot) {
-        final activityData = snapshot.data ?? {};
-        final streak = _calculateStreak(activityData);
+  /// Displays the current consistency streak based on historical activity
+  Widget _buildStreakCard(Map<String, int> activityData) {
+    final streak = _calculateStreak(activityData);
 
-        return FakeGlassCard(
-          child: Row(
-            children: [
-              const Text('🔥', style: TextStyle(fontSize: 40)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$streak Day Streak',
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 36,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Text(
-                      'Consistency is your superpower',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+    return FakeGlassCard(
+      child: Row(
+        children: [
+          const Text('🔥', style: TextStyle(fontSize: 40)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$streak Day Streak',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildActivityHeatmap() {
-    return AppCard(
-      padding: const EdgeInsets.all(8),
-      child: StreamBuilder<Map<String, int>>(
-        stream: _firestoreService.getActivityData(DateTime.now().subtract(const Duration(days: 180))),
-        builder: (context, snapshot) {
-          final activityData = snapshot.data ?? {};
-          final convertedData = <DateTime, int>{};
-          activityData.forEach(
-              (key, value) => convertedData[DateTime.parse(key)] = value);
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: HeatMapCalendar(
-              datasets: convertedData,
-              colorMode: ColorMode.color,
-              showColorTip: false,
-              size: 28,
-              fontSize: 10,
-              margin: const EdgeInsets.all(2),
-              weekTextColor: AppColors.textSecondary,
-              textColor: AppColors.textPrimary,
-              monthFontSize: 14,
-              colorsets: {
-                1: AppColors.accent.withValues(alpha: 0.2),
-                2: AppColors.accent.withValues(alpha: 0.4),
-                3: AppColors.accent.withValues(alpha: 0.6),
-                4: AppColors.accent.withValues(alpha: 0.8),
-                5: AppColors.accent,
-              },
+                const Text(
+                  'Consistency is your superpower',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 
+  /// Builds a GitHub-style heatmap visualize the user's daily progress
+  Widget _buildActivityHeatmap(Map<String, int> activityData) {
+    final convertedData = <DateTime, int>{};
+    
+    // Transforming string keys from Firestore back into DateTime objects for the heatmap
+    activityData.forEach(
+        (key, value) => convertedData[DateTime.parse(key)] = value);
+
+    return AppCard(
+      padding: const EdgeInsets.all(8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: HeatMapCalendar(
+          datasets: convertedData,
+          colorMode: ColorMode.color,
+          showColorTip: false,
+          size: 28,
+          fontSize: 10,
+          margin: const EdgeInsets.all(2),
+          weekTextColor: AppColors.textSecondary,
+          textColor: AppColors.textPrimary,
+          monthFontSize: 14,
+          colorsets: {
+            1: AppColors.accent.withValues(alpha: 0.2),
+            2: AppColors.accent.withValues(alpha: 0.4),
+            3: AppColors.accent.withValues(alpha: 0.6),
+            4: AppColors.accent.withValues(alpha: 0.8),
+            5: AppColors.accent,
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Displays navigation shortcuts to commonly used screens
   Widget _buildQuickActions(BuildContext context) {
     return AppCard(
       padding: EdgeInsets.zero,
@@ -320,6 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  /// Individual action row helper for the Quick Actions section
   Widget _buildActionItem(String title, IconData icon, VoidCallback onTap) {
     return ListTile(
       onTap: onTap,
@@ -330,7 +380,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: AppColors.accent.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.add, color: AppColors.accent, size: 20),
+        // FIXED: was hardcoded Icons.add — now correctly uses the passed icon
+        child: Icon(icon, color: AppColors.accent, size: 20),
       ),
       title: Text(
         title,
@@ -342,27 +393,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing:
-          const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 14,
+        color: AppColors.textSecondary,
+      ),
     );
   }
-
-  int _calculateStreak(Map<String, int> activityData) {
-    if (activityData.isEmpty) return 0;
-    final sortedDates = activityData.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
-    int streak = 0;
-    DateTime current = DateTime.now();
-    for (int i = 0; i < sortedDates.length; i++) {
-      final date = DateFormat('yyyy-MM-dd').parse(sortedDates[i]);
-      final diff = current.difference(date).inDays;
-      if (diff == streak) {
-        streak++;
-      } else if (diff > streak) {
-        break;
-      }
-    }
-    return streak;
-  }
 }
-

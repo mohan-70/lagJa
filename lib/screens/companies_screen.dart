@@ -1,3 +1,5 @@
+// CompaniesScreen: Tracks and manages target companies for placement.
+// Allows users to add, search, and update the application status of various firms.
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,7 @@ import '../widgets/ui/status_chip.dart';
 import '../widgets/ui/gradient_button.dart';
 import '../widgets/ui/section_header.dart';
 import '../widgets/ui/ui_constants.dart';
+import '../widgets/ui/shimmer_loader.dart';
 
 class CompaniesScreen extends StatefulWidget {
   const CompaniesScreen({super.key});
@@ -16,9 +19,13 @@ class CompaniesScreen extends StatefulWidget {
 }
 
 class _CompaniesScreenState extends State<CompaniesScreen> {
+  // ─── State & Initialization ───
+
   final FirestoreService _firestoreService = FirestoreService();
   final Uuid _uuid = const Uuid();
   ApplicationStatus? _filterStatus;
+
+  // ─── Build Method ───
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +36,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('Companies'),
+        // Subtle border at the bottom of the AppBar
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.3),
           child: Container(color: AppColors.border, height: 0.3),
@@ -39,13 +47,15 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
           _buildFilterChips(),
           Expanded(
             child: StreamBuilder<List<Company>>(
+              // Real-time stream of companies from Firestore
               stream: _firestoreService.getCompanies(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(color: AppColors.accent));
+                  return const ShimmerList();
                 }
                 final allCompanies = snapshot.data ?? [];
+                
+                // Client-side filtering based on the selected status chip
                 final companies = _filterStatus == null
                     ? allCompanies
                     : allCompanies.where((c) => c.status == _filterStatus).toList();
@@ -79,6 +89,9 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  // ─── UI Helper Widgets ───
+
+  /// Builds a horizontal scrolling row of status filter chips
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -92,6 +105,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  /// Builds an individual filter chip for a specific status
   Widget _buildChip(ApplicationStatus? status, String label) {
     final isSelected = _filterStatus == status;
     return Padding(
@@ -122,6 +136,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  /// Builds a card displaying company info, role, and current status
   Widget _buildCompanyCard(Company c) {
     return GestureDetector(
       onLongPress: () => _showDeleteConfirmation(c),
@@ -172,6 +187,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  /// UI shown when the company list (or filtered list) is empty
   Widget _buildEmptyState() {
     return const Center(
       child: Column(
@@ -199,6 +215,9 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  // ─── Interactive Dialogs & Bottom Sheets ───
+
+  /// Opens a form to add a new company application
   void _showAddCompanyBottomSheet() {
     final nameC = TextEditingController();
     final roleC = TextEditingController();
@@ -301,6 +320,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  /// Opens a picker to quickly update a company's application status
   void _showStatusUpdate(Company c) {
     showModalBottomSheet(
       context: context,
@@ -334,6 +354,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
+  /// Shows a confirmation dialog before removing a company from the list
   void _showDeleteConfirmation(Company c) {
     showDialog(
       context: context,
@@ -341,11 +362,13 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         title: const Text('Delete'),
         content: Text('Remove ${c.name}?'),
         actions: [
+          // Dismiss dialog
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel',
                 style: TextStyle(color: AppColors.textSecondary)),
           ),
+          // Perform deletion in Firestore
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);

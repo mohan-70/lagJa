@@ -1,3 +1,6 @@
+// RoadmapScreen: An advanced AI-driven personalized preparation assistant.
+// It classifies target companies into tiers, performs gap analysis on user skills,
+// and generates a strictly ordered learning sequence tailored to specific roles.
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -8,54 +11,14 @@ import '../widgets/ui/app_card.dart';
 import '../widgets/ui/fake_glass_card.dart';
 import '../widgets/ui/gradient_button.dart';
 import '../widgets/ui/section_header.dart';
-import '../widgets/ui/lagja_loader.dart';
 import '../widgets/ui/ui_constants.dart';
+import '../widgets/ui/shimmer_loader.dart';
+import '../widgets/ui/lagja_loader.dart';
 import '../widgets/ui/difficulty_chip.dart';
 
-// ─── CHANGES FROM OLD roadmap_screen.dart ────────────────────────────────────
-// 1. REMOVED: unused imports — `http` (never used directly, AIService handles
-//    HTTP), `remote_config_service.dart`, `ui_constants.dart`.
-//
-// 2. FIXED: `_RoadmapTopic.fromMap()` now casts int fields via `num` to prevent
-//    a runtime crash when Firestore/JSON returns a double instead of int
-//    (e.g. estimatedDays: 3.0 instead of 3).
-//
-// 3. FIXED: `_generateRoadmap()` — JSON extraction now validates that start < end
-//    before calling substring, preventing a RangeError on malformed AI output.
-//
-// 4. FIXED: `_generateContent()` in TopicContentScreen — same JSON extraction
-//    safety fix applied. Also the catch block was shadowing the outer variable
-//    `e` (exception) with the loop variable — renamed to `err` to fix the
-//    shadowing warning.
-//
-// 5. FIXED: `_saveDSAToTracker()` now uses `RoadmapProblem.fromMap()` instead
-//    of constructing RoadmapProblem directly from raw AI map — this ensures
-//    difficulty validation and whyImportant truncation from the model are applied.
-//    Also now calls `addDSAProblemRaw` in a single batch-friendly loop using
-//    the updated FirestoreService (stats counter incremented per save).
-//
-// 6. FIXED: `_bottomAction()` — disabled state for save button was using
-//    `() {}` (empty closure that still triggers tap). Replaced with a proper
-//    loading indicator inside the button area when _isSaving is true.
-//
-// 7. FIXED: `_miniChip()` color logic — "read" and "revise" type values were
-//    falling through to grey (textSecondary). Now all valid type values have
-//    an explicit color.
-//
-// 8. ADDED: `_showSnackBar` helper is now used consistently in TopicContentScreen
-//    too (was inlined with repetitive ScaffoldMessenger calls before).
-//
-// 9. FIXED: TextEditingController padding — the TextField inside AppCard had no
-//    content padding so text was flush against the card edge. Added padding via
-//    InputDecoration.contentPadding.
-//
-// 10. ADDED: `_companyController` text is trimmed and validated for min length
-//     (at least 2 characters) to prevent single-character or whitespace-only
-//     company names being sent to the AI.
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Internal Data Models ───
 
-// ── Internal model for a roadmap topic ────────────────────────────────────────
-
+/// Represents a single topic or study item within the generated roadmap
 class _RoadmapTopic {
   final int weekNumber;
   final String topic;
@@ -102,6 +65,8 @@ class RoadmapScreen extends StatefulWidget {
 enum _ScreenState { form, loading, result }
 
 class _RoadmapScreenState extends State<RoadmapScreen> {
+  // ─── State & Initialization ───
+
   _ScreenState _state = _ScreenState.form;
   List<_RoadmapTopic> _topics = [];
 
@@ -109,6 +74,21 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
   String _selectedRole = 'SDE';
   Set<String> _selectedWeeks = {'4 weeks'};
   Set<String> _selectedLevel = {'Beginner'};
+
+  // Detailed user assessment fields for gap analysis
+  Set<String> _selectedLeetCode = {'0-50'};
+  Set<String> _comfortableTopics = {};
+  Set<String> _hasProjects = {'No'};
+
+  static const List<String> _topicOptions = [
+    'Arrays',
+    'Linked List',
+    'OOPs',
+    'DBMS',
+    'OS',
+    'CN',
+    'None',
+  ];
 
   String _savedCompany = '';
   String _savedRole = '';
@@ -120,6 +100,30 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     'Data Analyst',
     'Any Internship',
   ];
+
+  // ── Company tier classification ─────────────────────────────────────────
+  static const _massRecruiters = {
+    'tcs', 'infosys', 'wipro', 'cognizant', 'hcl',
+    'tech mahindra', 'capgemini', 'accenture', 'cts',
+  };
+  static const _productCompanies = {
+    'google', 'amazon', 'microsoft', 'adobe', 'flipkart',
+    'apple', 'meta', 'netflix', 'uber', 'atlassian',
+    'oracle', 'intuit', 'salesforce', 'goldman sachs',
+    'de shaw', 'tower research', 'samsung', 'qualcomm',
+    'nvidia', 'paypal', 'linkedin', 'twitter',
+  };
+
+  // ─── Business Logic (Tiering & Prompts) ───
+
+  /// Categorizes companies into broad difficulty tiers to adjust AI expectations
+  String _classifyTier(String company) {
+    final c = company.toLowerCase().trim();
+    if (_massRecruiters.any((m) => c.contains(m))) return 'mass_recruiter';
+    if (_productCompanies.any((p) => c.contains(p))) return 'product';
+    return 'mid_tier';
+  }
+  // ────────────────────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -133,10 +137,197 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Constructs a context-rich prompt for the AI including tier rules, gap analysis, and dependency ordering
+  String _buildRoadmapPrompt({
+    required String company,
+    required String role,
+    required String weeks,
+    required String level,
+    required String leetCode,
+    required Set<String> comfortableIn,
+    required bool hasProjects,
+  }) {
+    final tier = _classifyTier(company);
+
+    // ── Tier-specific rules ──────────────────────────────────────────────
+    String tierRules;
+    switch (tier) {
+      case 'mass_recruiter':
+        tierRules = '''
+COMPANY TIER: Mass Recruiter ($company — same category as TCS, Infosys, Wipro).
+Focus areas:
+- Aptitude & Logical Reasoning (MUST include as separate topics)
+- Basic DSA: Only Easy level — Arrays, Strings, Sorting, Searching
+- Core CS theory: OOPs basics, DBMS normalization, OS basics, CN basics
+- Verbal & Written communication
+- HR round prep
+DO NOT include: Hard DSA, System Design, advanced data structures (Graphs, DP, Tries), competitive programming.''';
+        break;
+      case 'product':
+        tierRules = '''
+COMPANY TIER: Product / Top Tech ($company — same category as Google, Amazon, Microsoft).
+Focus areas:
+- DSA: Must include Medium AND Hard problems — cover Arrays, Trees, Graphs, DP, Backtracking, Greedy, Sliding Window, Two Pointers
+- System Design: At least 2-3 topics (HLD basics, LLD basics, Design Patterns)
+- Behavioral / Leadership Principles round
+- Advanced CS theory: OS (scheduling, deadlocks, virtual memory), DBMS (transactions, indexing, query optimization), CN (TCP/IP, HTTP, DNS)
+- Time & Space complexity analysis
+DO NOT skip hard topics. This company WILL ask them.''';
+        break;
+      default: // mid_tier
+        tierRules = '''
+COMPANY TIER: Mid Tier / Startup ($company).
+Focus areas:
+- DSA: Primarily Medium level, a few Easy warm-ups, rare Hard
+- OOPs in depth (classes, inheritance, polymorphism, SOLID)
+- Project discussion & presentation
+- Basic System Design (1-2 topics max — API design, database schema)
+- Core CS theory: moderate depth
+- HR round prep
+DO NOT over-emphasize System Design or competitive-level hard DSA.''';
+    }
+
+    // ── Gap analysis — skip comfortable topics ───────────────────────────
+    String gapSection;
+    if (comfortableIn.isEmpty || comfortableIn.contains('None')) {
+      gapSection =
+          'The student has NO comfortable topics — start from absolute basics.';
+    } else {
+      final comfy = comfortableIn.join(', ');
+      gapSection = '''
+The student is ALREADY comfortable in: $comfy.
+DO NOT generate beginner-level introductory topics for these subjects.
+Instead, include only ADVANCED or interview-specific aspects of these topics if relevant.
+Focus the roadmap on the GAPS — topics the student has NOT listed.''';
+    }
+
+    // ── Role-specific depth ──────────────────────────────────────────────
+    String roleDepth;
+    switch (role) {
+      case 'Flutter Developer':
+        roleDepth = '''
+ROLE: Flutter Developer.
+- Reduce System Design to at most 1 topic (basic API/state management).
+- Add Flutter/Dart-specific topics: Widget lifecycle, State management, REST API integration.
+- DSA depth: Medium at most — focus on Arrays, Strings, Maps, basic Trees.''';
+        break;
+      case 'Full Stack Developer':
+        roleDepth = '''
+ROLE: Full Stack Developer.
+- Include both frontend and backend concepts.
+- System Design: 2 topics (API design, database schema).
+- Include REST APIs, authentication, basic deployment.
+- DSA depth: Medium.''';
+        break;
+      case 'Data Analyst':
+        roleDepth = '''
+ROLE: Data Analyst.
+- Reduce DSA to only Easy-Medium (Arrays, Strings, basic SQL).
+- Add SQL query practice, data visualization, statistics basics.
+- NO System Design.
+- Include Excel/Sheets, Python/Pandas basics if time permits.''';
+        break;
+      case 'Any Internship':
+        roleDepth = '''
+ROLE: Any Internship (generalist).
+- Keep DSA at Easy-Medium.
+- Include resume & project discussion.
+- Light theory, prioritize breadth over depth.
+- 1 System Design topic only if 8 weeks available.''';
+        break;
+      default: // SDE / Backend
+        roleDepth = '''
+ROLE: SDE / Backend.
+- Full DSA coverage as per company tier.
+- System Design depth as per company tier.
+- Strong OOPs and CS fundamentals required.''';
+    }
+
+    // ── LeetCode experience calibration ──────────────────────────────────
+    String lcSection;
+    switch (leetCode) {
+      case '150+':
+        lcSection =
+            'Student has solved 150+ LeetCode problems — skip basic pattern '
+            'introductions. Focus on advanced patterns and company-tagged problems.';
+        break;
+      case '50-150':
+        lcSection =
+            'Student has solved 50-150 LeetCode problems — they know basics. '
+            'Include medium patterns and start introducing hard concepts.';
+        break;
+      default:
+        lcSection =
+            'Student has solved 0-50 LeetCode problems — include foundational '
+            'pattern topics (sliding window, two pointers, etc.) from scratch.';
+    }
+
+    final projectNote = hasProjects
+        ? 'Student HAS prior projects — skip "build a project" basics, '
+          'focus on how to PRESENT projects in interviews.'
+        : 'Student has NO prior projects — allocate time to build at least '
+          '1 small project and prepare a project walkthrough.';
+
+    return '''
+You are a placement preparation expert for Indian BCA/BTech students.
+Create a complete placement preparation roadmap for a student targeting
+$company for the role of $role.
+Timeline: $weeks. Current self-assessed level: $level.
+
+$tierRules
+
+$roleDepth
+
+STUDENT ASSESSMENT:
+$lcSection
+$gapSection
+$projectNote
+
+LEARNING DEPENDENCY ORDER (MANDATORY):
+Topics MUST follow this strict dependency sequence where applicable:
+1. Basic data structures (Arrays, Strings) before advanced ones (Trees, Graphs)
+2. Sorting & Searching before Two Pointers, Sliding Window
+3. Recursion before Backtracking, DP
+4. Trees before Graphs
+5. OOPs before Design Patterns before System Design
+6. OS, DBMS, CN basics before advanced theory
+7. Core technical topics before HR/Behavioral
+8. Earlier weeks should have foundational topics, later weeks should have advanced topics
+
+TIMELINE RULES:
+- Total estimated days across all topics MUST NOT exceed ${_weeksToDays(weeks)} days.
+- Each topic's estimatedDays must be realistic (1-3 days for simple topics, 3-5 for complex).
+- Do NOT generate more topics than can fit in the timeline.
+
+Return ONLY a JSON array with no markdown, no backticks, no explanation.
+Each item is a topic to study.
+Format: [{"weekNumber": 1, "topic": "Arrays", "category": "DSA",
+"priority": "High", "estimatedDays": 3,
+"description": "one line what to study", "type": "practice"}].
+category must be one of: DSA, OOPs, Theory, System Design, HR, Project.
+type must be one of: practice, read, revise.
+priority must be: High, Medium, or Low.
+Generate 15-25 topics ordered by week and strict learning dependency sequence.
+''';
+  }
+
+  int _weeksToDays(String weeks) {
+    switch (weeks) {
+      case '2 weeks':
+        return 14;
+      case '8 weeks':
+        return 56;
+      default:
+        return 28;
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
+  /// Orchestrates the entire roadmap generation flow from user input to state update
   Future<void> _generateRoadmap() async {
     final company = _companyController.text.trim();
 
-    // ADDED: minimum length validation — prevents single-char or empty queries
+    // minimum length validation — prevents single-char or empty queries
     if (company.length < 2) {
       _showSnackBar('Please enter a valid company name.');
       return;
@@ -144,6 +335,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
 
     final weeks = _selectedWeeks.first;
     final level = _selectedLevel.first;
+    final leetCode = _selectedLeetCode.first;
+    final hasProj = _hasProjects.first == 'Yes';
 
     setState(() {
       _state = _ScreenState.loading;
@@ -151,19 +344,15 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       _savedRole = _selectedRole;
     });
 
-    final prompt =
-        'You are a placement preparation expert for Indian BCA/BTech students. '
-        'Create a complete placement preparation roadmap for a student targeting '
-        '$company for $_selectedRole. They have $weeks and are at $level level. '
-        'Return ONLY a JSON array with no markdown, no backticks, no explanation. '
-        'Each item is a topic to study. '
-        'Format: [{"weekNumber": 1, "topic": "Arrays", "category": "DSA", '
-        '"priority": "High", "estimatedDays": 3, '
-        '"description": "one line what to study", "type": "practice"}]. '
-        'category must be one of: DSA, OOPs, Theory, System Design, HR, Project. '
-        'type must be one of: practice, read, revise. '
-        'priority must be: High, Medium, or Low. '
-        'Generate 15-25 topics ordered by week and learning sequence.';
+    final prompt = _buildRoadmapPrompt(
+      company: company,
+      role: _selectedRole,
+      weeks: weeks,
+      level: level,
+      leetCode: leetCode,
+      comfortableIn: _comfortableTopics,
+      hasProjects: hasProj,
+    );
 
     try {
       final text = await AIService.generateContent(prompt: prompt);
@@ -171,7 +360,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
       final int start = text.indexOf('[');
       final int end = text.lastIndexOf(']');
 
-      // FIXED: validate indices before substring to prevent RangeError
+      // validate indices before substring to prevent RangeError
       if (start == -1 || end == -1 || end <= start) {
         throw Exception('AI returned an unexpected format. Please try again.');
       }
@@ -197,7 +386,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     }
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
+  // ─── Build Method & State Dispatcher ───
 
   @override
   Widget build(BuildContext context) {
@@ -212,11 +401,12 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
           child: Container(color: AppColors.border, height: 0.3),
         ),
       ),
+      // Switching UI based on current app state (Input Form vs Loading vs Result)
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: switch (_state) {
           _ScreenState.loading =>
-            const LagjaLoader(message: 'Building your specialized roadmap...'),
+          const LagjaLoader(message: 'Building your specialized roadmap...'),
           _ScreenState.result => _buildResultView(),
           _ScreenState.form => _buildFormView(),
         },
@@ -224,6 +414,9 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     );
   }
 
+  // ─── View Builders (Form, Result) ───
+
+  /// Builds the initial assessment form where users provide their details
   Widget _buildFormView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -248,7 +441,6 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 fillColor: Colors.transparent,
-                // FIXED: text was flush against card edge without this
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
@@ -289,6 +481,44 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
               onChanged: (v) => setState(() => _selectedLevel = v),
             ),
           ),
+
+          // ── New assessment fields ──────────────────────────────────────
+          const SectionHeader('LEETCODE PROBLEMS SOLVED'),
+          AppCard(
+            padding: const EdgeInsets.all(4),
+            child: _buildSegmentedRow(
+              options: const ['0-50', '50-150', '150+'],
+              selected: _selectedLeetCode,
+              onChanged: (v) => setState(() => _selectedLeetCode = v),
+            ),
+          ),
+          const SectionHeader('TOPICS YOU\'RE COMFORTABLE IN'),
+          AppCard(
+            child: _buildMultiSelectChips(
+              options: _topicOptions,
+              selected: _comfortableTopics,
+              onChanged: (v) => setState(() {
+                // "None" is exclusive — deselect everything else
+                if (v.contains('None') && !_comfortableTopics.contains('None')) {
+                  _comfortableTopics = {'None'};
+                } else {
+                  v.remove('None');
+                  _comfortableTopics = v;
+                }
+              }),
+            ),
+          ),
+          const SectionHeader('HAVE PRIOR PROJECTS?'),
+          AppCard(
+            padding: const EdgeInsets.all(4),
+            child: _buildSegmentedRow(
+              options: const ['Yes', 'No'],
+              selected: _hasProjects,
+              onChanged: (v) => setState(() => _hasProjects = v),
+            ),
+          ),
+          // ──────────────────────────────────────────────────────────────
+
           const SizedBox(height: 48),
           GradientButton(label: 'Generate Roadmap', onTap: _generateRoadmap),
           const SizedBox(height: 32),
@@ -297,6 +527,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     );
   }
 
+  /// Builds the grouped list view showing the generated weekly study steps
   Widget _buildResultView() {
     final Map<int, List<_RoadmapTopic>> grouped = {};
     for (final t in _topics) {
@@ -373,6 +604,9 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     );
   }
 
+  // ─── UI Helper Components ───
+
+  /// Builds a clickable card for a specific roadmap topic
   Widget _buildTopicCard(_RoadmapTopic topic) {
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -518,7 +752,57 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     );
   }
 
-  // REMOVED: unused `enabled` parameter from _buildSegmentedRow
+  /// Internal helper to build a grid of selectable filter-like chips for multi-select
+  Widget _buildMultiSelectChips({
+    required List<String> options,
+    required Set<String> selected,
+    required ValueChanged<Set<String>> onChanged,
+  }) {
+    // Ensuring "None" logic is handled correctly at UI level
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      childAspectRatio: 2.5,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      children: options.map((opt) {
+        final isSelected = selected.contains(opt);
+        return GestureDetector(
+          onTap: () {
+            final next = Set<String>.from(selected);
+            if (isSelected) {
+              next.remove(opt);
+            } else {
+              next.add(opt);
+            }
+            onChanged(next);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.accent : AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? AppColors.accent : AppColors.border,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                opt,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Builds a custom horizontal segmented control row for single/restricted multiple choice
   Widget _buildSegmentedRow({
     required List<String> options,
     required Set<String> selected,
@@ -922,8 +1206,9 @@ JSON structure (keys must match exactly):
             Border(top: BorderSide(color: AppColors.border, width: 0.3)),
       ),
       child: _isSaving
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+          ? const ShimmerContainer(
+              height: 56,
+              borderRadius: 16,
             )
           : GradientButton(
               label: isDSA ? 'Save to DSA Tracker' : 'Mark as Revised',

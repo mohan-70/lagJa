@@ -1,3 +1,5 @@
+// SettingsScreen: Manages user preferences, profile updates, and account security.
+// Provides tools to clear application data and manage the authenticated session.
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
@@ -15,9 +17,14 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // ─── State & Initialization ───
+
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
 
+  // ─── Dialog Builders & Core Logic ───
+
+  /// Opens a dialog to update the user's display name in Firebase Auth
   void _updateDisplayName() {
     final controller =
         TextEditingController(text: _authService.currentUserName);
@@ -41,6 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
                 try {
+                  // Updating the display name directly via the current Firebase user
                   await FirebaseAuth.instance.currentUser
                       ?.updateDisplayName(newName);
                   if (context.mounted) {
@@ -66,6 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// General confirmation dialog for destructive data clearing tasks
   void _confirmClearData(String title, Future<void> Function() action) {
     showDialog(
       context: context,
@@ -101,6 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Confirms and executes the sign out flow
   void _confirmSignOut() {
     showDialog(
       context: context,
@@ -135,6 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Permanently deletes both Firestore data and the Firebase Auth account
   void _confirmDeleteAccount() {
     showDialog(
       context: context,
@@ -150,6 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               try {
+                // First cleaning up data in cloud store before deleting auth record
                 await _firestoreService.deleteUserData();
                 await FirebaseAuth.instance.currentUser?.delete();
                 if (context.mounted) {
@@ -170,6 +182,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  // ─── Build Method & Section Views ───
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Builds the top profile header with avatar and editable name
   Widget _buildProfileSection() {
     final name = _authService.currentUserName ?? 'User';
     final email = _authService.currentUserEmail ?? '';
@@ -292,6 +307,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ─── UI Helper Components ───
+
+  /// Generic settings tile with supports for text/icon trailing and destructive states
   Widget _buildTile(String title,
       {String? trailing,
       IconData? trailingIcon,
@@ -318,6 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Builds a subtle separator for listed settings items
   Widget _buildDivider() {
     return const Divider(color: AppColors.border, height: 1, indent: 16);
   }

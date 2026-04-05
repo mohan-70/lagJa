@@ -1,3 +1,5 @@
+// DSATrackerScreen: Monitored progress of coding problems.
+// Tracks solved questions with difficulty levels and allows one-click status updates. Users can search, filter by difficulty/status, and log solved problems for consistency streaks.
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/dsa_problem.dart';
@@ -6,7 +8,9 @@ import '../widgets/ui/app_card.dart';
 import '../widgets/ui/difficulty_chip.dart';
 import '../widgets/ui/section_header.dart';
 import '../widgets/ui/ui_constants.dart';
+import '../widgets/ui/shimmer_loader.dart';
 
+// Available visibility and category filters
 enum FilterOption { all, easy, medium, hard, solved, unsolved }
 
 class DSATrackerScreen extends StatefulWidget {
@@ -16,11 +20,17 @@ class DSATrackerScreen extends StatefulWidget {
 }
 
 class _DSATrackerScreenState extends State<DSATrackerScreen> {
+  // ─── State & Initialization ───
+
   final FirestoreService _firestoreService = FirestoreService();
   final Uuid _uuid = const Uuid();
   FilterOption _currentFilter = FilterOption.all;
   String _searchQuery = '';
+  
+  // Local map to provide instant visual feedback before Firestore update completes
   final Map<String, bool> _optimisticSolved = {};
+
+  // ─── Build Method ───
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +41,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('DSA Tracker'),
+        // Subtle divider below the AppBar
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.3),
           child: Container(color: AppColors.border, height: 0.3),
@@ -41,11 +52,11 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
           _buildSearchAndFilter(),
           Expanded(
             child: StreamBuilder<List<DSAProblem>>(
+              // Real-time stream subscription for the DSA problems collection
               stream: _firestoreService.getDSAProblems(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(color: AppColors.accent));
+                  return const ShimmerList();
                 }
                 final problems = snapshot.data ?? [];
                 final filtered = _filterProblems(problems);
@@ -78,6 +89,9 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     );
   }
 
+  // ─── UI Helper Widgets ───
+
+  /// Builds the search input field and horizontal filter chip selection
   Widget _buildSearchAndFilter() {
     return Column(
       children: [
@@ -140,6 +154,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     );
   }
 
+  /// Builds an individual problem card with color-coded difficulty indicators
   Widget _buildProblemCard(DSAProblem p) {
     Color dColor;
     switch (p.difficulty.toLowerCase()) {
@@ -220,6 +235,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     );
   }
 
+  /// UI shown when no problems exist or match current search/filter
   Widget _buildEmptyState() {
     return const Center(
       child: Column(
@@ -247,6 +263,9 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     );
   }
 
+  // ─── Interactive Dialogs & Core Logic ───
+
+  /// Updates problem status in Firestore with optimistic UI feedback
   Future<void> _toggleSolved(DSAProblem p) async {
     final bool newSolvedState = !p.isSolved;
     setState(() {
@@ -272,6 +291,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     }
   }
 
+  /// Shows confirmation dialog before removing a problem from the tracker
   void _showDeleteConfirmation(DSAProblem p) {
     showDialog(
       context: context,
@@ -296,6 +316,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     );
   }
 
+  /// Opens a form to manually add a new problem entry
   void _showAddProblemBottomSheet() {
     final titleC = TextEditingController();
     final topicC = TextEditingController();
@@ -403,6 +424,7 @@ class _DSATrackerScreenState extends State<DSATrackerScreen> {
     );
   }
 
+  /// Logic to filter problems based on text search and the active filter chip
   List<DSAProblem> _filterProblems(List<DSAProblem> problems) {
     return problems.where((p) {
       if (_searchQuery.isNotEmpty &&

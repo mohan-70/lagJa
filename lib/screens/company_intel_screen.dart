@@ -1,3 +1,5 @@
+// CompanyIntelScreen: AI-powered assistant for researching companies.
+// Provides mock interviews, common questions, and strategic prep tips for specific firms.
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/ai_service.dart';
@@ -16,10 +18,13 @@ class CompanyIntelScreen extends StatefulWidget {
 }
 
 class _CompanyIntelScreenState extends State<CompanyIntelScreen> {
+  // ─── State & Initialization ───
+
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false;
   Map<String, dynamic>? _intelResult;
 
+  // Predefined common search terms for quick access
   final List<String> _quickSearches = [
     "TCS",
     "Infosys",
@@ -29,7 +34,7 @@ class _CompanyIntelScreenState extends State<CompanyIntelScreen> {
     "Startup"
   ];
 
-  // ✅ Fix: safe double parse for rating
+  /// Ensures the rating is handled correctly whether AI returns int, double, or string
   double _safeDouble(dynamic val) {
     if (val == null) return 0.0;
     if (val is double) return val;
@@ -37,6 +42,9 @@ class _CompanyIntelScreenState extends State<CompanyIntelScreen> {
     return double.tryParse(val.toString()) ?? 0.0;
   }
 
+  // ─── Data Fetching & AI ───
+
+  /// Triggers the AI agent to gather intelligence about a specific company
   Future<void> _fetchIntel(String companyName) async {
     if (companyName.isEmpty) return;
 
@@ -45,7 +53,8 @@ class _CompanyIntelScreenState extends State<CompanyIntelScreen> {
       _intelResult = null;
     });
 
-   final prompt = """
+    // Structuring the AI prompt to enforce strict JSON output with specific placement-related data
+    final prompt = """
 You are a placement intelligence system for Indian college students (BCA/BTech freshers).
 
 Analyze the company "$companyName" and return a JSON object with EXACTLY this structure.
@@ -78,10 +87,11 @@ JSON structure (keys must match exactly):
 
     try {
       final text = await AIService.generateContent(prompt: prompt);
+      
+      // Sanitizing the AI response in case it includes markdown code blocks
       final cleanedText =
           text.replaceAll('```json', '').replaceAll('```', '').trim();
 
-      // ✅ Fix: safe JSON parse with clear error
       Map<String, dynamic> parsed;
       try {
         parsed = jsonDecode(cleanedText);
@@ -102,16 +112,17 @@ JSON structure (keys must match exactly):
         );
       }
     } finally {
-      // ✅ Fix: single place for loading = false
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   void dispose() {
-    _searchController.dispose(); // ✅ Fix: controller dispose
+    _searchController.dispose();
     super.dispose();
   }
+
+  // ─── Build Method ───
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +138,9 @@ JSON structure (keys must match exactly):
     return _buildSearchState();
   }
 
-  // ✅ Fix: wrapped in Scaffold for consistency
+  // ─── Main View States (Search & Result) ───
+
+  /// Builds the initial search interface with the text field and quick search chips
   Widget _buildSearchState() {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -157,7 +170,7 @@ JSON structure (keys must match exactly):
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                 ),
-                onSubmitted: (val) => _fetchIntel(val.trim()), // ✅ keyboard submit support
+                onSubmitted: (val) => _fetchIntel(val.trim()),
               ),
             ),
             const SizedBox(height: 16),
@@ -202,6 +215,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Builds the detailed report view after AI analysis is successful
   Widget _buildResultState() {
     final intel = _intelResult!;
     return Scaffold(
@@ -255,8 +269,11 @@ JSON structure (keys must match exactly):
     );
   }
 
+  // ─── Result Components (Cards) ───
+
+  /// Hero card with company name, overview, and star rating
   Widget _buildHeaderCard(Map<String, dynamic> intel) {
-    final double rating = _safeDouble(intel['rating']); // ✅ safe parse
+    final double rating = _safeDouble(intel['rating']);
     return FakeGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,6 +286,7 @@ JSON structure (keys must match exactly):
           const SizedBox(height: 8),
           Text(intel['overview'] ?? '', style: AppStyles.body),
           const SizedBox(height: 16),
+          // Mapping a numerical rating to a 5-star visual representation
           Row(
             children: List.generate(5, (index) {
               if (index < rating.floor()) {
@@ -288,6 +306,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Displays salary-related data like CTC and stipend side-by-side
   Widget _buildSalaryCard(Map<String, dynamic> intel) {
     return AppCard(
       child: Row(
@@ -304,6 +323,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Helper for building individual salary information points
   Widget _buildSalaryItem(String label, String value) {
     return Column(
       children: [
@@ -320,6 +340,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Displays hiring difficulty and selection rate metrics
   Widget _buildHiringStatsCard(Map<String, dynamic> intel) {
     String diff = intel['hiringDifficulty'] ?? 'Medium';
     Color diffColor = AppColors.warning;
@@ -339,6 +360,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Helper for building individual badge-style stats
   Widget _buildStatItem(String val, Color col, String label) {
     return Column(
       children: [
@@ -362,6 +384,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Lists the sequence of interview rounds commonly followed
   Widget _buildInterviewProcessCard(Map<String, dynamic> intel) {
     List rounds = intel['interviewRounds'] ?? [];
     return AppCard(
@@ -401,6 +424,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Builds a wrapping collection of skill chips required by the company
   Widget _buildKeySkillsCard(Map<String, dynamic> intel) {
     List skills = intel['keySkills'] ?? [];
     return AppCard(
@@ -427,7 +451,7 @@ JSON structure (keys must match exactly):
                           borderRadius: BorderRadius.circular(20)),
                       child: Text(s,
                           style: const TextStyle(
-                              color: AppColors.textPrimary,
+                               color: AppColors.textPrimary,
                               fontSize: 12)),
                     ))
                 .toList(),
@@ -437,6 +461,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Displays specific, actionable preparation tips
   Widget _buildTipsCard(Map<String, dynamic> intel) {
     List tips = intel['tipsToGetIn'] ?? [];
     return AppCard(
@@ -452,7 +477,7 @@ JSON structure (keys must match exactly):
           ...tips.map((tip) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("💡",
                         style: TextStyle(fontSize: 14)),
@@ -471,6 +496,7 @@ JSON structure (keys must match exactly):
     );
   }
 
+  /// Brief card highlighting the company's primary reputation/culture
   Widget _buildKnownForCard(Map<String, dynamic> intel) {
     return AppCard(
       child: Row(
