@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/group_member.dart';
 import '../widgets/ui/app_card.dart';
@@ -13,52 +12,6 @@ import '../widgets/ui/section_header.dart';
 import '../widgets/ui/ui_constants.dart';
 import '../widgets/ui/lagja_loader.dart';
 import '../widgets/ui/gradient_button.dart';
-
-
-// ─── CHANGES FROM OLD leaderboard_screen.dart ─────────────────────────────────
-// 1. REMOVED: unused import 'ui_constants.dart' — replaced with direct imports
-//    of app_colors.dart and app_theme.dart (consistent with other screens).
-//
-// 2. FIXED: `_calculateStreak()` — same bug as dashboard_screen. Now uses
-//    `_today()` helper to strip the time component from DateTime.now(), and
-//    correctly handles "solved today OR yesterday" as an active streak.
-//    Duplicating the streak logic in two places is a known issue — ideally this
-//    would live in FirestoreService, but fixing correctness here is the priority.
-//
-// 3. FIXED: `_syncUserStats()` — the weekly problems count was using a raw
-//    activity date query instead of the stats already available in Firestore.
-//    More importantly, the old `weeklyProblems` count was incrementing `count`
-//    (activity count per day) rather than actual solved problems per week.
-//    Now correctly uses a dedicated DSA query filtered by `createdAt >= startOfWeek`
-//    and `isSolved == true` for an accurate weekly count.
-//
-// 4. FIXED: `_syncUserStats()` — `weeklyProblems` cast was guarded with a
-//    ternary (`count is int ? count : (count as num).toInt()`) but the simpler
-//    and safer `(count as num).toInt()` handles both cases. Applied consistently.
-//
-// 5. FIXED: `_generateRandomCode()` — was creating a new `Random()` instance
-//    on every character, which technically works but is wasteful. Now creates
-//    one instance and reuses it.
-//
-// 6. FIXED: `_buildLeaderboardState()` — `FutureBuilder` showed `SizedBox.shrink()`
-//    while loading and showed nothing on error. Now shows a proper loading
-//    indicator and an error state with a retry button.
-//
-// 7. FIXED: `_confirmLeaveGroup()` and `_showCreateGroupSheet()` —
-//    `TextEditingController` created inside `showModalBottomSheet` builder was
-//    never disposed, leaking memory on every open. Now uses a local controller
-//    properly disposed via a StatefulBuilder.
-//
-// 8. FIXED: `_createGroup()` — used `uid!` force-unwrap after already checking
-//    `uid != null` at the top. Restructured so the null check gates all logic
-//    and force-unwrap is no longer needed.
-//
-// 9. ADDED: `_leaderboardFuture` is now refreshed after `_syncUserStats` in
-//    `_refreshLeaderboard()` so the UI actually shows updated numbers after pull.
-//
-// 10. FIXED: Bottom sheet `TextField` controllers are now properly disposed
-//     using a helper `_showSheet()` pattern with StatefulBuilder.
-// ─────────────────────────────────────────────────────────────────────────────
 
 class LeaderboardScreen extends StatefulWidget {
   final bool showAppBar;
@@ -69,7 +22,7 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-  // ─── State & Initialization ───
+  // ─── State ───────────────────────────────────────────────────────────────────
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -77,14 +30,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _isLoading = true;
   String? _groupId;
   String? _groupName;
-  String? _inviteCode;
   Future<QuerySnapshot>? _leaderboardFuture;
 
-  // ── Date helper (mirrors dashboard fix) ─────────────────────────────────────
+  // ─── Date helper ─────────────────────────────────────────────────────────────
+
   static DateTime _today() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
   }
+
+  // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   @override
   void initState() {
@@ -92,9 +47,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     _checkGroupStatus();
   }
 
-  // ── Group status ─────────────────────────────────────────────────────────────
-
-  // ─── Group Management Logic ───
+  // ─── Group Status ─────────────────────────────────────────────────────────────
 
   /// Checks if the current user is already part of a group on app launch
   Future<void> _checkGroupStatus() async {
@@ -122,12 +75,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               setState(() {
                 _groupId = groupId;
                 _groupName = groupDoc.data()?['name'] as String?;
-                _inviteCode = groupDoc.data()?['inviteCode'] as String?;
                 _leaderboardFuture = _fetchLeaderboardData(groupId);
                 _isLoading = false;
               });
             }
-            _syncUserStats(groupId); // fire-and-forget background sync
+            _syncUserStats(groupId);
             return;
           }
         }
@@ -140,17 +92,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ── Sync user stats to group ─────────────────────────────────────────────────
+  // ─── Data Sync ───────────────────────────────────────────────────────────────
 
-  // ─── Data Synchronization & Helpers ───
-
-  /// Syncs the user's local progress (DSA problems, streaks) to the group's cloud leaderboard
+  /// Syncs the user's local progress (DSA problems, streaks) to the group's leaderboard
   Future<void> _syncUserStats(String groupId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
     try {
-      // Total solved problems
       final dsaSnapshot = await _firestore
           .collection('users')
           .doc(uid)
@@ -161,10 +110,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           .get();
       final totalProblems = dsaSnapshot.docs.length;
 
-      // Weekly solved — count solved problems created since start of this week
       final now = DateTime.now();
       final monday = now.subtract(Duration(days: now.weekday - 1));
-      final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+      final startOfWeek =
+          DateTime(monday.year, monday.month, monday.day);
 
       final weeklySnapshot = await _firestore
           .collection('users')
@@ -174,11 +123,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           .collection('items')
           .where('isSolved', isEqualTo: true)
           .where('createdAt',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeek))
+              isGreaterThanOrEqualTo:
+                  Timestamp.fromDate(startOfWeek))
           .get();
       final weeklyProblems = weeklySnapshot.docs.length;
 
-      // Streak — from activity data
       final startDateStr = DateFormat('yyyy-MM-dd').format(
         _today().subtract(const Duration(days: 180)),
       );
@@ -188,7 +137,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           .collection('data')
           .doc('activity')
           .collection('dates')
-          .where(FieldPath.documentId, isGreaterThanOrEqualTo: startDateStr)
+          .where(FieldPath.documentId,
+              isGreaterThanOrEqualTo: startDateStr)
           .get();
 
       final Map<String, int> activityData = {};
@@ -219,8 +169,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // FIXED: strips time component, handles "today OR yesterday" correctly
-  /// Computes the longest continuous sequence of daily activity for the member card
+  /// Computes the current daily activity streak
   int _calculateStreak(Map<String, int> activityData) {
     if (activityData.isEmpty) return 0;
 
@@ -228,7 +177,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final sortedDates = activityData.keys.toList()
       ..sort((a, b) => b.compareTo(a));
 
-    final mostRecent = DateFormat('yyyy-MM-dd').parse(sortedDates.first);
+    final mostRecent =
+        DateFormat('yyyy-MM-dd').parse(sortedDates.first);
     final gap = today.difference(mostRecent).inDays;
     if (gap > 1) return 0;
 
@@ -248,7 +198,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     return streak;
   }
 
-  // ── Leaderboard fetch & refresh ──────────────────────────────────────────────
+  // ─── Leaderboard Fetch ────────────────────────────────────────────────────────
 
   Future<QuerySnapshot> _fetchLeaderboardData(String groupId) {
     return _firestore
@@ -269,17 +219,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ── Random invite code ────────────────────────────────────────────────────────
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  // FIXED: one Random instance reused across all characters
   String _generateRandomCode(int length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final rng = Random.secure();
-    return List.generate(length, (_) => chars[rng.nextInt(chars.length)])
+    return List.generate(
+            length, (_) => chars[rng.nextInt(chars.length)])
         .join();
   }
-
-  // ── Snack bar ─────────────────────────────────────────────────────────────────
 
   void _showSnackBar(String message) {
     if (!mounted) return;
@@ -287,11 +235,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // ── Create group ──────────────────────────────────────────────────────────────
+  // ─── Create Group ─────────────────────────────────────────────────────────────
 
-  /// Logic to generate and save a new group to Firestore
   void _showCreateGroupSheet() {
-    // FIXED: controller created and disposed properly inside StatefulBuilder
     final controller = TextEditingController();
     showModalBottomSheet(
       context: context,
@@ -353,7 +299,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Future<void> _createGroup(String name) async {
     final uid = _auth.currentUser?.uid;
-    // FIXED: guard entire method — no force-unwrap needed below
     if (uid == null) return;
 
     setState(() => _isLoading = true);
@@ -398,7 +343,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         setState(() {
           _groupId = newGroupId;
           _groupName = name;
-          _inviteCode = inviteCode;
           _leaderboardFuture = _fetchLeaderboardData(newGroupId);
           _isLoading = false;
         });
@@ -410,7 +354,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ── Join group ────────────────────────────────────────────────────────────────
+  // ─── Join Group ───────────────────────────────────────────────────────────────
 
   void _showJoinGroupSheet() {
     final controller = TextEditingController();
@@ -463,7 +407,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             GradientButton(
               label: 'Join',
               onTap: () {
-                final code = controller.text.trim().toUpperCase();
+                final code =
+                    controller.text.trim().toUpperCase();
                 controller.dispose();
                 Navigator.pop(sheetContext);
                 if (code.length == 6) _joinGroup(code);
@@ -528,7 +473,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         setState(() {
           _groupId = groupId;
           _groupName = groupDoc.data()['name'] as String?;
-          _inviteCode = groupDoc.data()['inviteCode'] as String?;
           _leaderboardFuture = _fetchLeaderboardData(groupId);
           _isLoading = false;
         });
@@ -541,7 +485,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ── Leave group ───────────────────────────────────────────────────────────────
+  // ─── Leave Group ──────────────────────────────────────────────────────────────
 
   void _confirmLeaveGroup() {
     showDialog(
@@ -595,7 +539,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         setState(() {
           _groupId = null;
           _groupName = null;
-          _inviteCode = null;
           _isLoading = false;
         });
         _showSnackBar('Left group');
@@ -606,9 +549,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
-
-  // ─── Build Method ───
+  // ─── Build ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -617,9 +558,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     return _buildLeaderboardState();
   }
 
-  // ─── UI State Builders (No Group / Leaderboard) ───
+  // ─── No Group State ───────────────────────────────────────────────────────────
 
-  /// Builds the "Join/Create Group" UI for users not currently in a group
   Widget _buildNoGroupState() {
     final body = Center(
       child: Padding(
@@ -655,7 +595,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 child: const Text(
                   'Join with Code',
                   style: TextStyle(
-                      fontWeight: FontWeight.w600, color: AppColors.accent),
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accent),
                 ),
               ),
             ),
@@ -680,14 +621,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  /// Main leaderboard view featuring rank cards and member lists
+  // ─── Leaderboard State ────────────────────────────────────────────────────────
+
   Widget _buildLeaderboardState() {
     final uid = _auth.currentUser?.uid;
 
     final body = FutureBuilder<QuerySnapshot>(
       future: _leaderboardFuture,
       builder: (context, snapshot) {
-        // FIXED: proper loading and error states instead of SizedBox.shrink()
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: LagjaLoader());
         }
@@ -698,7 +639,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text('Failed to load leaderboard',
-                    style: TextStyle(color: AppColors.textSecondary)),
+                    style:
+                        TextStyle(color: AppColors.textSecondary)),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: _refreshLeaderboard,
@@ -713,17 +655,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(
             child: Text('No members yet. Invite a friend!',
-                style: TextStyle(color: AppColors.textSecondary)),
+                style:
+                    TextStyle(color: AppColors.textSecondary)),
           );
         }
 
         final members = snapshot.data!.docs
-            .map((doc) =>
-                GroupMember.fromMap(doc.data() as Map<String, dynamic>))
+            .map((doc) => GroupMember.fromMap(
+                doc.data() as Map<String, dynamic>))
             .toList();
 
-        final userIndex = members.indexWhere((m) => m.uid == uid);
-        final userMember = userIndex != -1 ? members[userIndex] : null;
+        final userIndex =
+            members.indexWhere((m) => m.uid == uid);
+        final userMember =
+            userIndex != -1 ? members[userIndex] : null;
 
         return RefreshIndicator(
           color: AppColors.accent,
@@ -748,12 +693,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               const Center(
                 child: Text(
                   'Resets every Monday 🔄',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12),
                 ),
               ),
-              const SectionHeader('INVITE'),
-              _buildInviteCard(),
               const SizedBox(height: 48),
             ],
           ),
@@ -778,22 +722,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             const Text(
               'Placement War 🏆',
-              style:
-                  TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: AppColors.textPrimary),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: _inviteCode ?? ''));
-              _showSnackBar('Invite code copied: $_inviteCode 📋');
-            },
-          ),
           PopupMenuButton<String>(
-            icon:
-                const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            icon: const Icon(Icons.more_vert,
+                color: AppColors.textPrimary),
             onSelected: (val) {
               if (val == 'leave') _confirmLeaveGroup();
             },
@@ -815,11 +752,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ── UI Components ─────────────────────────────────────────────────────────────
+  // ─── Component Widgets ────────────────────────────────────────────────────────
 
-  // ─── Component Widgets (Cards) ───
-
-  /// Hero card displaying the user's current rank and summary stats
+  /// Hero card showing the current user's rank and stats
   Widget _buildRankCard(int rank, GroupMember member) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -838,9 +773,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildMiniStat('Weekly', '${member.weeklyProblems}'),
+                _buildMiniStat(
+                    'Weekly', '${member.weeklyProblems}'),
                 _buildMiniStat('Total', '${member.totalProblems}'),
-                _buildMiniStat('Streak', '${member.currentStreak}d'),
+                _buildMiniStat(
+                    'Streak', '${member.currentStreak}d'),
               ],
             ),
           ],
@@ -869,8 +806,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  /// Individual row for each member in the leaderboard list
-  Widget _buildMemberCard(int rank, GroupMember member, bool isMe) {
+  /// Individual member row in the leaderboard list
+  Widget _buildMemberCard(
+      int rank, GroupMember member, bool isMe) {
     final rankPrefix = switch (rank) {
       1 => '🥇',
       2 => '🥈',
@@ -893,8 +831,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ),
               ),
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 16),
               child: Text(
                 rankPrefix,
                 style: const TextStyle(
@@ -906,7 +844,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -923,7 +862,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       '${member.weeklyProblems} weekly · '
                       '${member.currentStreak}d streak',
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                          color: AppColors.textSecondary,
+                          fontSize: 12),
                     ),
                   ],
                 ),
@@ -942,66 +882,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Card containing the invite code and sharing options
-  Widget _buildInviteCard() {
-    return AppCard(
-      child: Column(
-        children: [
-          const Text(
-            'Invite Friends',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Text(
-                    _inviteCode ?? '',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: () {
-                  Clipboard.setData(
-                      ClipboardData(text: _inviteCode ?? ''));
-                  _showSnackBar('Invite code copied! 📋');
-                },
-                icon: const Icon(Icons.copy, color: AppColors.accent),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Share this code with your friends to add them to the war 💪',
-            textAlign: TextAlign.center,
-            style:
-                TextStyle(color: AppColors.textSecondary, fontSize: 13),
-          ),
-        ],
       ),
     );
   }
